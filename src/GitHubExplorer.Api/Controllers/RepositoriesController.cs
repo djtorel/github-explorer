@@ -29,7 +29,8 @@ public sealed class RepositoriesController(IGitHubService service) : ControllerB
 
         var result = await service.GetRepositoriesAsync(username.Trim(), page, perPage, ct);
         return result.Match(
-            repos => Ok(new ApiResponseDto<IReadOnlyList<RepositoryDto>>(true, repos, null)),
+            result => Ok(new ApiResponseDto<PaginatedResultDto<RepositoryDto>>(true,
+                new PaginatedResultDto<RepositoryDto>(result.Items, result.TotalCount), null)),
             error => MapErrorToActionResult(error));
     }
 

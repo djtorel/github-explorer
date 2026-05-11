@@ -74,11 +74,12 @@ public class GitHubApiClientTests
         var result = await RunReposTest(_ => TestData.OkJson(TestData.SampleReposJson), "octocat", 1, 30);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Value.Count.ShouldBe(2);
-        result.Value[0].Name.ShouldBe("repo1");
-        result.Value[0].StargazersCount.ShouldBe(100);
-        result.Value[1].Name.ShouldBe("repo2");
-        result.Value[1].Description.ShouldBeNull();
+        result.Value.Items.Count.ShouldBe(2);
+        result.Value.Items[0].Name.ShouldBe("repo1");
+        result.Value.Items[0].StargazersCount.ShouldBe(100);
+        result.Value.Items[1].Name.ShouldBe("repo2");
+        result.Value.Items[1].Description.ShouldBeNull();
+        result.Value.TotalCount.ShouldBe(2);
     }
 
     [Fact]
@@ -127,7 +128,7 @@ public class GitHubApiClientTests
         return await client.GetUserAsync(username);
     }
 
-    private static async Task<Result<IReadOnlyList<Repository>>> RunReposTest(
+    private static async Task<Result<(IReadOnlyList<Repository> Items, int TotalCount)>> RunReposTest(
         Func<HttpRequestMessage, HttpResponseMessage> handler,
         string username,
         int page,

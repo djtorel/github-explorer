@@ -23,21 +23,60 @@ public sealed class GitHubApiClient(HttpClient httpClient, ILogger<GitHubApiClie
             $"user {username}",
             ct);
 
-    public async Task<Result<IReadOnlyList<Repository>>> GetRepositoriesAsync(
+    public async Task<Result<(IReadOnlyList<Repository> Items, int TotalCount)>> GetRepositoriesAsync(
         string username, int page, int perPage, CancellationToken ct = default)
     {
         var url = $"users/{Uri.EscapeDataString(username)}/repos?page={page}&per_page={perPage}&sort=stars&direction=desc";
 
-        var result = await SendRequestAsync(
-            () => httpClient.GetAsync(url, ct),
-            response => response.Content.ReadFromJsonAsync<List<Repository>>(JsonOptions, ct),
-            $"repos of user {username}",
-            ct);
+        try
+        {
+            var response = await httpClient.GetAsync(url, ct);
+            var error = MapToError(response);
 
-        return result.Bind(repos =>
-            repos.Count == 0
-                ? Result<IReadOnlyList<Repository>>.Failure(GitHubError.EmptyResult)
-                : Result<IReadOnlyList<Repository>>.Success(repos));
+            if (error.HasValue)
+            {
+                if (error.Value == GitHubError.Unknown)
+                    logger.LogWarning("Unexpected status code {StatusCode} from GitHub API", response.StatusCode);
+                return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(error.Value);
+            }
+
+            var repos = await response.Content.ReadFromJsonAsync<List<Repository>>(JsonOptions, ct);
+
+            if (repos is null || repos.Count == 0)
+                return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.EmptyResult);
+
+            var linkHeader = response.Headers.TryGetValues("Link", out var linkValues)
+                ? linkValues.FirstOrDefault()
+                : null;
+            var totalCount = ExtractTotalCountFromLinkHeader(linkHeader, perPage);
+            if (totalCount == 0) totalCount = repos.Count;
+
+            return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((repos, totalCount));
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            logger.LogWarning("GitHub API request timed out for repos of user {Username}", username);
+            return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.NetworkError);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "Network error calling GitHub API for repos of user {Username}", username);
+            return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.NetworkError);
+        }
+    }
+
+    private static int ExtractTotalCountFromLinkHeader(string? linkHeader, int perPage)
+    {
+        if (string.IsNullOrWhiteSpace(linkHeader)) return 0;
+
+        var lastMatch = System.Text.RegularExpressions.Regex.Match(
+            linkHeader,
+            @"<[^>]+[?&]page=(\d+)[^>]*>;\s*rel=""last""");
+
+        if (lastMatch.Success && int.TryParse(lastMatch.Groups[1].Value, out var lastPage))
+            return lastPage * perPage;
+
+        return 0;
     }
 
     private async Task<Result<T>> SendRequestAsync<T>(

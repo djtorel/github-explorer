@@ -53,33 +53,35 @@ public sealed class GitHubServiceTests
             new() { Name = "Hello-World", Description = "My first repository on GitHub!", StargazersCount = 3000, ForksCount = 2000, Language = null, HtmlUrl = "https://github.com/octocat/Hello-World" }
         };
         _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
-            .Returns(Result<IReadOnlyList<Repository>>.Success(repos));
+            .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((repos, repos.Count)));
 
         var result = await _service.GetRepositoriesAsync("octocat", 1, 30);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Value.Count.ShouldBe(2);
-        result.Value[0].Name.ShouldBe("Spoon-Knife");
-        result.Value[0].Description.ShouldBe("This repo is for demonstration purposes only.");
-        result.Value[0].StargazersCount.ShouldBe(12000);
-        result.Value[0].ForksCount.ShouldBe(140000);
-        result.Value[0].Language.ShouldBe("HTML");
-        result.Value[0].HtmlUrl.ShouldBe("https://github.com/octocat/Spoon-Knife");
-        result.Value[1].Name.ShouldBe("Hello-World");
-        result.Value[1].Description.ShouldBe("My first repository on GitHub!");
-        result.Value[1].Language.ShouldBeNull();
+        result.Value.Items.Count.ShouldBe(2);
+        result.Value.Items[0].Name.ShouldBe("Spoon-Knife");
+        result.Value.Items[0].Description.ShouldBe("This repo is for demonstration purposes only.");
+        result.Value.Items[0].StargazersCount.ShouldBe(12000);
+        result.Value.Items[0].ForksCount.ShouldBe(140000);
+        result.Value.Items[0].Language.ShouldBe("HTML");
+        result.Value.Items[0].HtmlUrl.ShouldBe("https://github.com/octocat/Spoon-Knife");
+        result.Value.Items[1].Name.ShouldBe("Hello-World");
+        result.Value.Items[1].Description.ShouldBe("My first repository on GitHub!");
+        result.Value.Items[1].Language.ShouldBeNull();
+        result.Value.TotalCount.ShouldBe(2);
     }
 
     [Fact]
     public async Task GetRepositoriesAsync_ReturnsEmptyList_WhenNoRepos()
     {
         _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
-            .Returns(Result<IReadOnlyList<Repository>>.Success(Array.Empty<Repository>()));
+            .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((Array.Empty<Repository>(), 0)));
 
         var result = await _service.GetRepositoriesAsync("octocat", 1, 30);
 
         result.IsSuccess.ShouldBeTrue();
-        result.Value.ShouldBeEmpty();
+        result.Value.Items.ShouldBeEmpty();
+        result.Value.TotalCount.ShouldBe(0);
     }
 
     [Fact]
@@ -110,7 +112,7 @@ public sealed class GitHubServiceTests
     public async Task GetRepositoriesAsync_PassesThroughNetworkError()
     {
         _client.GetRepositoriesAsync("any", 1, 30, Arg.Any<CancellationToken>())
-            .Returns(Result<IReadOnlyList<Repository>>.Failure(GitHubError.NetworkError));
+            .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.NetworkError));
 
         var result = await _service.GetRepositoriesAsync("any", 1, 30);
 
@@ -122,7 +124,7 @@ public sealed class GitHubServiceTests
     public async Task GetRepositoriesAsync_PassesThroughEmptyResult()
     {
         _client.GetRepositoriesAsync("any", 1, 30, Arg.Any<CancellationToken>())
-            .Returns(Result<IReadOnlyList<Repository>>.Failure(GitHubError.EmptyResult));
+            .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.EmptyResult));
 
         var result = await _service.GetRepositoriesAsync("any", 1, 30);
 

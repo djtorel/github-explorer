@@ -11,9 +11,10 @@ public sealed class GitHubService(IGitHubClient client) : IGitHubService
     public Task<Result<UserProfileDto>> GetUserAsync(string username, CancellationToken ct = default) =>
         client.GetUserAsync(username, ct).MapAsync(MapToDto);
 
-    public Task<Result<IReadOnlyList<RepositoryDto>>> GetRepositoriesAsync(
+    public Task<Result<(IReadOnlyList<RepositoryDto> Items, int TotalCount)>> GetRepositoriesAsync(
         string username, int page, int perPage, CancellationToken ct = default) =>
-        client.GetRepositoriesAsync(username, page, perPage, ct).MapAsync(MapToDtos);
+        client.GetRepositoriesAsync(username, page, perPage, ct)
+            .MapAsync(r => (MapToDtos(r.Items), r.TotalCount));
 
     private static UserProfileDto MapToDto(UserProfile user) => new(
         user.Login, user.Name, user.AvatarUrl, user.Bio,

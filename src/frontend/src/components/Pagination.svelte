@@ -43,7 +43,7 @@
     <button
       onclick={() => goToPage(page - 1)}
       disabled={!canGoPrev}
-      class="px-3 py-1.5 rounded-md text-sm font-medium
+      class="px-2 py-1.5 sm:px-3 rounded-md text-xs sm:text-sm font-medium
              bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
              text-gray-700 dark:text-gray-300
              hover:bg-gray-50 dark:hover:bg-gray-700
@@ -52,22 +52,24 @@
       ← Prev
     </button>
 
-    {#each pageNumbers() as p}
-      <button
-        onclick={() => goToPage(p)}
-        class="px-3 py-1.5 rounded-md text-sm font-medium min-w-[2.5rem]
-               {p === page
-                 ? 'bg-blue-600 text-white border border-blue-600'
-                 : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}"
-      >
-        {p}
-      </button>
-    {/each}
+    <div class="hidden sm:flex items-center gap-1">
+      {#each pageNumbers() as p}
+        <button
+          onclick={() => goToPage(p)}
+          class="px-3 py-1.5 rounded-md text-sm font-medium min-w-[2.5rem]
+                 {p === page
+                   ? 'bg-blue-600 text-white border border-blue-600'
+                   : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}"
+        >
+          {p}
+        </button>
+      {/each}
+    </div>
 
     <button
       onclick={() => goToPage(page + 1)}
       disabled={!canGoNext}
-      class="px-3 py-1.5 rounded-md text-sm font-medium
+      class="px-2 py-1.5 sm:px-3 rounded-md text-xs sm:text-sm font-medium
              bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
              text-gray-700 dark:text-gray-300
              hover:bg-gray-50 dark:hover:bg-gray-700

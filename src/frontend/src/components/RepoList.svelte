@@ -13,7 +13,7 @@
 
 <div class="space-y-3">
   {#if loading}
-    <Skeleton variant="list" count={5} />
+    <Skeleton variant="repo" count={5} />
   {:else if repos.length === 0}
     <div class="text-center py-12 text-gray-500 dark:text-gray-400">
       <p class="text-lg font-medium">No public repositories</p>

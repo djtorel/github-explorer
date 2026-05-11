@@ -1,6 +1,5 @@
 using System.Net.Http.Headers;
 using GitHubExplorer.Domain.Interfaces;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,10 +10,10 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddGitHubInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration)
+        Action<GitHubApiOptions> configureOptions)
     {
-        services.Configure<GitHubApiOptions>(
-            configuration.GetSection(GitHubApiOptions.SectionName));
+        services.Configure(configureOptions);
+        services.AddSingleton<IValidateOptions<GitHubApiOptions>, GitHubApiOptionsValidation>();
 
         services.AddHttpClient<IGitHubClient, GitHubApiClient>(
             (sp, client) =>

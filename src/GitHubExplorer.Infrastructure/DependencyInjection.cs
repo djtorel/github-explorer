@@ -3,6 +3,7 @@ using GitHubExplorer.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Polly;
 
 namespace GitHubExplorer.Infrastructure;
 
@@ -30,17 +31,14 @@ public static class DependencyInjection
                         new AuthenticationHeaderValue("Token", options.Token);
                 }
             })
-            .AddPolicyHandler((sp, _) =>
-            {
-                var logger = sp.GetRequiredService<ILogger<GitHubApiClient>>();
-                return ResiliencePolicies.GetRetryPolicy(logger);
-            })
-            .AddPolicyHandler((sp, _) =>
-            {
-                var logger = sp.GetRequiredService<ILogger<GitHubApiClient>>();
-                return ResiliencePolicies.GetCircuitBreakerPolicy(logger);
-            });
+            .AddPolicyHandler((sp, _) => GetPolicy(sp, ResiliencePolicies.GetRetryPolicy))
+            .AddPolicyHandler((sp, _) => GetPolicy(sp, ResiliencePolicies.GetCircuitBreakerPolicy));
 
         return services;
     }
+
+    private static IAsyncPolicy<HttpResponseMessage> GetPolicy(
+        IServiceProvider sp,
+        Func<ILogger, IAsyncPolicy<HttpResponseMessage>> factory) =>
+        factory(sp.GetRequiredService<ILogger<GitHubApiClient>>());
 }

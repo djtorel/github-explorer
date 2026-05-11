@@ -2,12 +2,7 @@ using System.Net;
 
 namespace GitHubExplorer.Infrastructure;
 
-public class GitHubApiException : Exception
+public class GitHubApiException(string message, HttpStatusCode statusCode) : Exception(message)
 {
-    public HttpStatusCode StatusCode { get; }
-
-    public GitHubApiException(string message, HttpStatusCode statusCode) : base(message)
-    {
-        StatusCode = statusCode;
-    }
+    public HttpStatusCode StatusCode { get; } = statusCode;
 }

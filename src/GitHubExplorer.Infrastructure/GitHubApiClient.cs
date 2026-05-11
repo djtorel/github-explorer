@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using GitHubExplorer.Domain.Interfaces;
@@ -7,119 +8,83 @@ using Microsoft.Extensions.Logging;
 
 namespace GitHubExplorer.Infrastructure;
 
-public sealed class GitHubApiClient : IGitHubClient
+public sealed class GitHubApiClient(HttpClient httpClient, ILogger<GitHubApiClient> logger) : IGitHubClient
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<GitHubApiClient> _logger;
-
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         PropertyNameCaseInsensitive = true
     };
 
-    public GitHubApiClient(HttpClient httpClient, ILogger<GitHubApiClient> logger)
-    {
-        _httpClient = httpClient;
-        _logger = logger;
-    }
-
-    public async Task<Result<UserProfile>> GetUserAsync(string username, CancellationToken ct = default)
-    {
-        try
-        {
-            var response = await _httpClient.GetAsync($"users/{Uri.EscapeDataString(username)}", ct);
-
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return Result<UserProfile>.Failure(GitHubError.NotFound);
-            }
-
-            if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-            {
-                return HandleForbidden<UserProfile>(response);
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Unexpected status code {StatusCode} from GitHub API", response.StatusCode);
-                return Result<UserProfile>.Failure(GitHubError.Unknown);
-            }
-
-            var profile = await response.Content.ReadFromJsonAsync<UserProfile>(JsonOptions, ct);
-
-            if (profile is null)
-            {
-                return Result<UserProfile>.Failure(GitHubError.EmptyResult);
-            }
-
-            return Result<UserProfile>.Success(profile);
-        }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            _logger.LogWarning("GitHub API request timed out for user {Username}", username);
-            return Result<UserProfile>.Failure(GitHubError.NetworkError);
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogWarning(ex, "Network error calling GitHub API for user {Username}", username);
-            return Result<UserProfile>.Failure(GitHubError.NetworkError);
-        }
-    }
+    public Task<Result<UserProfile>> GetUserAsync(string username, CancellationToken ct = default) =>
+        SendRequestAsync(
+            () => httpClient.GetAsync($"users/{Uri.EscapeDataString(username)}", ct),
+            response => response.Content.ReadFromJsonAsync<UserProfile>(JsonOptions, ct),
+            $"user {username}",
+            ct);
 
     public async Task<Result<IReadOnlyList<Repository>>> GetRepositoriesAsync(
         string username, int page, int perPage, CancellationToken ct = default)
     {
+        var url = $"users/{Uri.EscapeDataString(username)}/repos?page={page}&per_page={perPage}&sort=stars&direction=desc";
+
+        var result = await SendRequestAsync(
+            () => httpClient.GetAsync(url, ct),
+            response => response.Content.ReadFromJsonAsync<List<Repository>>(JsonOptions, ct),
+            $"repos of user {username}",
+            ct);
+
+        return result.Bind(repos =>
+            repos.Count == 0
+                ? Result<IReadOnlyList<Repository>>.Failure(GitHubError.EmptyResult)
+                : Result<IReadOnlyList<Repository>>.Success(repos));
+    }
+
+    private async Task<Result<T>> SendRequestAsync<T>(
+        Func<Task<HttpResponseMessage>> send,
+        Func<HttpResponseMessage, Task<T?>> deserialize,
+        string logContext,
+        CancellationToken ct)
+    {
         try
         {
-            var url = $"users/{Uri.EscapeDataString(username)}/repos?page={page}&per_page={perPage}&sort=stars&direction=desc";
-            var response = await _httpClient.GetAsync(url, ct);
+            var response = await send();
+            var error = MapToError(response);
 
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (error.HasValue)
             {
-                return Result<IReadOnlyList<Repository>>.Failure(GitHubError.NotFound);
+                if (error.Value == GitHubError.Unknown)
+                    logger.LogWarning("Unexpected status code {StatusCode} from GitHub API", response.StatusCode);
+                return Result<T>.Failure(error.Value);
             }
 
-            if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-            {
-                return HandleForbidden<IReadOnlyList<Repository>>(response);
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogWarning("Unexpected status code {StatusCode} from GitHub API", response.StatusCode);
-                return Result<IReadOnlyList<Repository>>.Failure(GitHubError.Unknown);
-            }
-
-            var repos = await response.Content.ReadFromJsonAsync<List<Repository>>(JsonOptions, ct);
-
-            if (repos is null || repos.Count == 0)
-            {
-                return Result<IReadOnlyList<Repository>>.Failure(GitHubError.EmptyResult);
-            }
-
-            return Result<IReadOnlyList<Repository>>.Success(repos);
+            var data = await deserialize(response);
+            return data is null
+                ? Result<T>.Failure(GitHubError.EmptyResult)
+                : Result<T>.Success(data);
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            _logger.LogWarning("GitHub API request timed out for repos of user {Username}", username);
-            return Result<IReadOnlyList<Repository>>.Failure(GitHubError.NetworkError);
+            logger.LogWarning("GitHub API request timed out for {Context}", logContext);
+            return Result<T>.Failure(GitHubError.NetworkError);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "Network error calling GitHub API for repos of user {Username}", username);
-            return Result<IReadOnlyList<Repository>>.Failure(GitHubError.NetworkError);
+            logger.LogWarning(ex, "Network error calling GitHub API for {Context}", logContext);
+            return Result<T>.Failure(GitHubError.NetworkError);
         }
     }
 
-    private static Result<T> HandleForbidden<T>(HttpResponseMessage response)
-    {
-        if (response.Headers.TryGetValues("x-ratelimit-remaining", out var values)
-            && values.FirstOrDefault() == "0")
+    private static GitHubError? MapToError(HttpResponseMessage response) =>
+        response.StatusCode switch
         {
-            return Result<T>.Failure(GitHubError.RateLimited);
-        }
+            HttpStatusCode.NotFound => GitHubError.NotFound,
+            HttpStatusCode.Forbidden => IsRateLimited(response) ? GitHubError.RateLimited : GitHubError.Unknown,
+            _ when !response.IsSuccessStatusCode => GitHubError.Unknown,
+            _ => null
+        };
 
-        return Result<T>.Failure(GitHubError.Unknown);
-    }
+    private static bool IsRateLimited(HttpResponseMessage response) =>
+        response.Headers.TryGetValues("x-ratelimit-remaining", out var values)
+        && values.FirstOrDefault() == "0";
 }

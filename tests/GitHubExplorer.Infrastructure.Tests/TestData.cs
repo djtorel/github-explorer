@@ -5,19 +5,10 @@ using NSubstitute;
 
 namespace GitHubExplorer.Infrastructure.Tests;
 
-public sealed class FakeHttpMessageHandler : HttpMessageHandler
+public sealed class FakeHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> sendAsync) : HttpMessageHandler
 {
-    private readonly Func<HttpRequestMessage, HttpResponseMessage> _sendAsync;
-
-    public FakeHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> sendAsync)
-    {
-        _sendAsync = sendAsync;
-    }
-
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult(_sendAsync(request));
-    }
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+        Task.FromResult(sendAsync(request));
 }
 
 public static class TestData
@@ -74,23 +65,15 @@ public static class TestData
         return new GitHubApiClient(httpClient, logger);
     }
 
-    public static HttpResponseMessage OkJson(string json)
-    {
-        return new HttpResponseMessage(HttpStatusCode.OK)
+    public static HttpResponseMessage OkJson(string json) =>
+        new(HttpStatusCode.OK) { Content = new StringContent(json) };
+
+    public static HttpResponseMessage Status(HttpStatusCode status) =>
+        new(status);
+
+    public static HttpResponseMessage RateLimited() =>
+        new(HttpStatusCode.Forbidden)
         {
-            Content = new StringContent(json)
+            Headers = { { "x-ratelimit-remaining", "0" } }
         };
-    }
-
-    public static HttpResponseMessage Status(HttpStatusCode status)
-    {
-        return new HttpResponseMessage(status);
-    }
-
-    public static HttpResponseMessage RateLimited()
-    {
-        var response = new HttpResponseMessage(HttpStatusCode.Forbidden);
-        response.Headers.Add("x-ratelimit-remaining", "0");
-        return response;
-    }
 }

@@ -1,6 +1,6 @@
 namespace GitHubExplorer.Domain.Models;
 
-public sealed class Repository
+public sealed record Repository
 {
     public required string Name { get; init; }
     public string? Description { get; init; }

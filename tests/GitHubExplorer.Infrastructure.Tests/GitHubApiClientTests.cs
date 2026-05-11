@@ -1,4 +1,5 @@
 using System.Net;
+using GitHubExplorer.Domain.Models;
 using GitHubExplorer.Domain.Results;
 using Shouldly;
 
@@ -9,10 +10,7 @@ public class GitHubApiClientTests
     [Fact]
     public async Task GetUserAsync_ReturnsSuccess_WhenUserExists()
     {
-        var handler = new FakeHttpMessageHandler(_ => TestData.OkJson(TestData.SampleUserJson));
-        var client = TestData.CreateClient(handler);
-
-        var result = await client.GetUserAsync("octocat");
+        var result = await RunUserTest(_ => TestData.OkJson(TestData.SampleUserJson), "octocat");
 
         result.IsSuccess.ShouldBeTrue();
         result.Value.Login.ShouldBe("octocat");
@@ -27,10 +25,7 @@ public class GitHubApiClientTests
     [Fact]
     public async Task GetUserAsync_ReturnsNotFound_WhenUserDoesNotExist()
     {
-        var handler = new FakeHttpMessageHandler(_ => TestData.Status(HttpStatusCode.NotFound));
-        var client = TestData.CreateClient(handler);
-
-        var result = await client.GetUserAsync("not-a-real-user-12345");
+        var result = await RunUserTest(_ => TestData.Status(HttpStatusCode.NotFound), "not-a-real-user-12345");
 
         result.IsFailure.ShouldBeTrue();
         result.Error.ShouldBe(GitHubError.NotFound);
@@ -39,10 +34,7 @@ public class GitHubApiClientTests
     [Fact]
     public async Task GetUserAsync_ReturnsRateLimited_WhenRateLimitExceeded()
     {
-        var handler = new FakeHttpMessageHandler(_ => TestData.RateLimited());
-        var client = TestData.CreateClient(handler);
-
-        var result = await client.GetUserAsync("octocat");
+        var result = await RunUserTest(_ => TestData.RateLimited(), "octocat");
 
         result.IsFailure.ShouldBeTrue();
         result.Error.ShouldBe(GitHubError.RateLimited);
@@ -51,10 +43,7 @@ public class GitHubApiClientTests
     [Fact]
     public async Task GetUserAsync_ReturnsNetworkError_WhenRequestFails()
     {
-        var handler = new FakeHttpMessageHandler(_ => throw new HttpRequestException("Connection refused"));
-        var client = TestData.CreateClient(handler);
-
-        var result = await client.GetUserAsync("octocat");
+        var result = await RunUserTest(_ => throw new HttpRequestException("Connection refused"), "octocat");
 
         result.IsFailure.ShouldBeTrue();
         result.Error.ShouldBe(GitHubError.NetworkError);
@@ -63,10 +52,7 @@ public class GitHubApiClientTests
     [Fact]
     public async Task GetUserAsync_ReturnsSuccess_WithNullOptionalFields()
     {
-        var handler = new FakeHttpMessageHandler(_ => TestData.OkJson(TestData.SampleUserNullFieldsJson));
-        var client = TestData.CreateClient(handler);
-
-        var result = await client.GetUserAsync("minimal");
+        var result = await RunUserTest(_ => TestData.OkJson(TestData.SampleUserNullFieldsJson), "minimal");
 
         result.IsSuccess.ShouldBeTrue();
         result.Value.Name.ShouldBeNull();
@@ -74,12 +60,18 @@ public class GitHubApiClientTests
     }
 
     [Fact]
+    public async Task GetUserAsync_ReturnsUnknown_WhenUnexpectedStatusCode()
+    {
+        var result = await RunUserTest(_ => TestData.Status(HttpStatusCode.Unauthorized), "octocat");
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.ShouldBe(GitHubError.Unknown);
+    }
+
+    [Fact]
     public async Task GetRepositoriesAsync_ReturnsSuccess_WhenReposExist()
     {
-        var handler = new FakeHttpMessageHandler(_ => TestData.OkJson(TestData.SampleReposJson));
-        var client = TestData.CreateClient(handler);
-
-        var result = await client.GetRepositoriesAsync("octocat", 1, 30);
+        var result = await RunReposTest(_ => TestData.OkJson(TestData.SampleReposJson), "octocat", 1, 30);
 
         result.IsSuccess.ShouldBeTrue();
         result.Value.Count.ShouldBe(2);
@@ -92,10 +84,7 @@ public class GitHubApiClientTests
     [Fact]
     public async Task GetRepositoriesAsync_ReturnsEmptyResult_WhenNoRepos()
     {
-        var handler = new FakeHttpMessageHandler(_ => TestData.OkJson("[]"));
-        var client = TestData.CreateClient(handler);
-
-        var result = await client.GetRepositoriesAsync("octocat", 1, 30);
+        var result = await RunReposTest(_ => TestData.OkJson("[]"), "octocat", 1, 30);
 
         result.IsFailure.ShouldBeTrue();
         result.Error.ShouldBe(GitHubError.EmptyResult);
@@ -124,24 +113,27 @@ public class GitHubApiClientTests
     [Fact]
     public async Task GetRepositoriesAsync_ReturnsRateLimited_WhenRateLimitHit()
     {
-        var handler = new FakeHttpMessageHandler(_ => TestData.RateLimited());
-        var client = TestData.CreateClient(handler);
-
-        var result = await client.GetRepositoriesAsync("octocat", 1, 30);
+        var result = await RunReposTest(_ => TestData.RateLimited(), "octocat", 1, 30);
 
         result.IsFailure.ShouldBeTrue();
         result.Error.ShouldBe(GitHubError.RateLimited);
     }
 
-    [Fact]
-    public async Task GetUserAsync_ReturnsUnknown_WhenUnexpectedStatusCode()
+    private static async Task<Result<UserProfile>> RunUserTest(
+        Func<HttpRequestMessage, HttpResponseMessage> handler,
+        string username)
     {
-        var handler = new FakeHttpMessageHandler(_ => TestData.Status(HttpStatusCode.Unauthorized));
-        var client = TestData.CreateClient(handler);
+        var client = TestData.CreateClient(new FakeHttpMessageHandler(handler));
+        return await client.GetUserAsync(username);
+    }
 
-        var result = await client.GetUserAsync("octocat");
-
-        result.IsFailure.ShouldBeTrue();
-        result.Error.ShouldBe(GitHubError.Unknown);
+    private static async Task<Result<IReadOnlyList<Repository>>> RunReposTest(
+        Func<HttpRequestMessage, HttpResponseMessage> handler,
+        string username,
+        int page,
+        int perPage)
+    {
+        var client = TestData.CreateClient(new FakeHttpMessageHandler(handler));
+        return await client.GetRepositoriesAsync(username, page, perPage);
     }
 }

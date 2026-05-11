@@ -1,6 +1,6 @@
 namespace GitHubExplorer.Domain.Models;
 
-public sealed class UserProfile
+public sealed record UserProfile
 {
     public required string Login { get; init; }
     public string? Name { get; init; }

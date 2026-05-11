@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\GitHubExplorer.Application\GitHubExplorer.Application.csproj" />
     <ProjectReference Include="..\GitHubExplorer.Domain\GitHubExplorer.Domain.csproj" />
     <ProjectReference Include="..\GitHubExplorer.Infrastructure\GitHubExplorer.Infrastructure.csproj" />
   </ItemGroup>

@@ -1,10 +1,12 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/GitHubExplorer.Api/GitHubExplorer.Api.csproj" />
+    <Project Path="src/GitHubExplorer.Application/GitHubExplorer.Application.csproj" />
     <Project Path="src/GitHubExplorer.Domain/GitHubExplorer.Domain.csproj" />
     <Project Path="src/GitHubExplorer.Infrastructure/GitHubExplorer.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/GitHubExplorer.Application.Tests/GitHubExplorer.Application.Tests.csproj" />
     <Project Path="tests/GitHubExplorer.Infrastructure.Tests/GitHubExplorer.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

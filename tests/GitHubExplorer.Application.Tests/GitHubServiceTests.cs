@@ -131,4 +131,114 @@ public sealed class GitHubServiceTests
         result.IsFailure.ShouldBeTrue();
         result.Error.ShouldBe(GitHubError.EmptyResult);
     }
+
+    [Fact]
+    public async Task GetUserAsync_NullName_PassesThroughNull()
+    {
+        var profile = new UserProfile
+        {
+            Login = "octocat",
+            Name = null,
+            AvatarUrl = "https://avatars.githubusercontent.com/u/1",
+            Bio = "GitHub mascot",
+            Followers = 100,
+            PublicRepos = 50,
+            HtmlUrl = "https://github.com/octocat"
+        };
+        _client.GetUserAsync("octocat", Arg.Any<CancellationToken>())
+            .Returns(Result<UserProfile>.Success(profile));
+
+        var result = await _service.GetUserAsync("octocat");
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Name.ShouldBeNull();
+        result.Value.Login.ShouldBe("octocat");
+    }
+
+    [Fact]
+    public async Task GetUserAsync_NullBio_PassesThroughNull()
+    {
+        var profile = new UserProfile
+        {
+            Login = "octocat",
+            Name = "The Octocat",
+            AvatarUrl = "https://avatars.githubusercontent.com/u/1",
+            Bio = null,
+            Followers = 100,
+            PublicRepos = 50,
+            HtmlUrl = "https://github.com/octocat"
+        };
+        _client.GetUserAsync("octocat", Arg.Any<CancellationToken>())
+            .Returns(Result<UserProfile>.Success(profile));
+
+        var result = await _service.GetUserAsync("octocat");
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Bio.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetRepositoriesAsync_PreservesOrderFromClient()
+    {
+        var repos = new List<Repository>
+        {
+            new() { Name = "low-stars", Description = "Low", StargazersCount = 10, ForksCount = 1, Language = "C#", HtmlUrl = "https://github.com/octocat/low-stars" },
+            new() { Name = "high-stars", Description = "High", StargazersCount = 1000, ForksCount = 100, Language = "TypeScript", HtmlUrl = "https://github.com/octocat/high-stars" }
+        };
+        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
+            .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((repos, repos.Count)));
+
+        var result = await _service.GetRepositoriesAsync("octocat", 1, 30);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Items[0].Name.ShouldBe("low-stars");
+        result.Value.Items[1].Name.ShouldBe("high-stars");
+        result.Value.Items[0].StargazersCount.ShouldBe(10);
+        result.Value.Items[1].StargazersCount.ShouldBe(1000);
+    }
+
+    [Fact]
+    public async Task GetRepositoriesAsync_NullDescription_PassesThroughNull()
+    {
+        var repos = new List<Repository>
+        {
+            new() { Name = "no-desc", Description = null, StargazersCount = 5, ForksCount = 1, Language = "Python", HtmlUrl = "https://github.com/octocat/no-desc" }
+        };
+        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
+            .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((repos, repos.Count)));
+
+        var result = await _service.GetRepositoriesAsync("octocat", 1, 30);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Items[0].Description.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetRepositoriesAsync_NullLanguage_PassesThroughNull()
+    {
+        var repos = new List<Repository>
+        {
+            new() { Name = "no-lang", Description = "No language", StargazersCount = 5, ForksCount = 1, Language = null, HtmlUrl = "https://github.com/octocat/no-lang" }
+        };
+        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
+            .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((repos, repos.Count)));
+
+        var result = await _service.GetRepositoriesAsync("octocat", 1, 30);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Items[0].Language.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetRepositoriesAsync_EmptyList_HasZeroTotalCount()
+    {
+        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
+            .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((Array.Empty<Repository>(), 0)));
+
+        var result = await _service.GetRepositoriesAsync("octocat", 1, 30);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.Items.ShouldBeEmpty();
+        result.Value.TotalCount.ShouldBe(0);
+    }
 }

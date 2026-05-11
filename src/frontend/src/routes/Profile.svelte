@@ -6,6 +6,7 @@
   import RepoList from '../components/RepoList.svelte';
   import Pagination from '../components/Pagination.svelte';
   import PageSizeSelector from '../components/PageSizeSelector.svelte';
+  import ErrorBanner from '../components/ErrorBanner.svelte';
 
   interface Props {
     params?: { username?: string };
@@ -61,6 +62,12 @@
     currentUser.page = 1;
     loadRepos(1, newSize);
   }
+
+  function handleRetry() {
+    currentUser.error = null;
+    currentUser.loading = true;
+    loadProfile(currentUser.username);
+  }
 </script>
 
 <div class="min-h-screen bg-white dark:bg-gray-900">
@@ -78,10 +85,7 @@
 
   <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
     {#if currentUser.error}
-      <div class="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300">
-        <p class="font-medium">{currentUser.error.code}</p>
-        <p class="text-sm">{currentUser.error.message}</p>
-      </div>
+      <ErrorBanner error={currentUser.error} onRetry={handleRetry} />
     {:else}
       <ProfileCard profile={currentUser.profile} loading={currentUser.loading} />
 

@@ -3,6 +3,9 @@
   import { currentUser } from '../lib/state.svelte.js';
   import ProfileCard from '../components/ProfileCard.svelte';
   import SearchBar from '../components/SearchBar.svelte';
+  import RepoList from '../components/RepoList.svelte';
+  import Pagination from '../components/Pagination.svelte';
+  import PageSizeSelector from '../components/PageSizeSelector.svelte';
 
   interface Props {
     params?: { username?: string };
@@ -15,13 +18,13 @@
     if (!username) return;
 
     currentUser.username = username;
+    currentUser.page = 1;
+    currentUser.perPage = 30;
     currentUser.loading = true;
     currentUser.error = null;
     currentUser.profile = null;
     currentUser.repos = [];
     currentUser.totalCount = 0;
-    currentUser.page = 1;
-    currentUser.perPage = 30;
 
     loadProfile(username);
   });
@@ -35,12 +38,28 @@
     }
     currentUser.profile = userResult.data ?? null;
 
-    const reposResult = await fetchRepos(username, 1, 30);
-    if (reposResult.data) {
-      currentUser.repos = reposResult.data.items;
-      currentUser.totalCount = reposResult.data.totalCount;
+    await loadRepos(1, 30);
+  }
+
+  async function loadRepos(page: number, perPage: number) {
+    currentUser.loading = true;
+    const result = await fetchRepos(currentUser.username, page, perPage);
+    if (result.data) {
+      currentUser.repos = result.data.items;
+      currentUser.totalCount = result.data.totalCount;
     }
     currentUser.loading = false;
+  }
+
+  function handlePageChange(newPage: number) {
+    currentUser.page = newPage;
+    loadRepos(newPage, currentUser.perPage);
+  }
+
+  function handlePageSizeChange(newSize: number) {
+    currentUser.perPage = newSize;
+    currentUser.page = 1;
+    loadRepos(1, newSize);
   }
 </script>
 
@@ -66,11 +85,27 @@
     {:else}
       <ProfileCard profile={currentUser.profile} loading={currentUser.loading} />
 
-      {#if !currentUser.loading && currentUser.profile}
-        <!-- Repo list and pagination will go here in 03-04 -->
-        <div class="text-gray-500 dark:text-gray-400 text-center py-8">
-          Repository list coming in next step...
+      {#if currentUser.profile}
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Repositories
+          </h2>
+          <PageSizeSelector
+            value={currentUser.perPage}
+            onChange={handlePageSizeChange}
+          />
         </div>
+
+        <RepoList repos={currentUser.repos} loading={currentUser.loading} />
+
+        {#if currentUser.totalCount > 0}
+          <Pagination
+            page={currentUser.page}
+            perPage={currentUser.perPage}
+            totalCount={currentUser.totalCount}
+            onPageChange={handlePageChange}
+          />
+        {/if}
       {/if}
     {/if}
   </main>

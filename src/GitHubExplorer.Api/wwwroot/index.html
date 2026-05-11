@@ -1,12 +1,23 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GitHub Explorer</title>
-    <script type="module" crossorigin src="/assets/index-Uoa6tBLy.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CrVWZpdK.css">
+    <script>
+      (function () {
+        const stored = localStorage.getItem("github-explorer-theme");
+        const mode =
+          stored ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light");
+        if (mode === "dark") document.documentElement.classList.add("dark");
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-DJpfuHkh.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BkgmLUxr.css">
   </head>
   <body>
     <div id="app"></div>

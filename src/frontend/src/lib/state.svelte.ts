@@ -1,6 +1,19 @@
 import type { UserProfile, Repository, ApiError } from "./types.js";
 
-export const theme = $state({ mode: "dark" as "light" | "dark" });
+function getInitialTheme(): "light" | "dark" {
+	const stored = localStorage.getItem("github-explorer-theme");
+	if (stored === "light" || stored === "dark") return stored;
+	return window.matchMedia("(prefers-color-scheme: dark)").matches
+		? "dark"
+		: "light";
+}
+
+export const theme = $state({ mode: getInitialTheme() });
+
+$effect(() => {
+	document.documentElement.classList.toggle("dark", theme.mode === "dark");
+	localStorage.setItem("github-explorer-theme", theme.mode);
+});
 
 export const currentUser = $state({
 	username: "",

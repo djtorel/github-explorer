@@ -1,8 +1,12 @@
 <script lang="ts">
   import SearchBar from '../components/SearchBar.svelte';
+  import ThemeToggle from '../components/ThemeToggle.svelte';
 </script>
 
-<div class="flex flex-col items-center justify-center min-h-screen px-4">
+<div class="flex flex-col items-center justify-center min-h-screen px-4 relative">
+  <div class="absolute top-4 right-4">
+    <ThemeToggle />
+  </div>
   <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">
     GitHub Explorer
   </h1>

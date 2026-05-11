@@ -13,10 +13,6 @@
     inputValue = value;
   });
 
-  $effect(() => {
-    inputValue = value;
-  });
-
   function handleSubmit(e: Event) {
     e.preventDefault();
     const username = inputValue.trim();
@@ -33,8 +29,8 @@
       bind:value={inputValue}
       placeholder="Search GitHub user..."
       disabled={loading}
-      class="flex-1 px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
-             bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
+      class="flex-1 px-4 py-3 rounded-lg border border-gh-border
+             bg-gh-card text-gh-text
              focus:outline-none focus:ring-2 focus:ring-blue-500
              disabled:opacity-50"
     />

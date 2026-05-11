@@ -7,11 +7,11 @@
   <div class="absolute top-4 right-4">
     <ThemeToggle />
   </div>
-  <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-8">
+  <h1 class="text-4xl font-bold text-gh-text mb-8">
     GitHub Explorer
   </h1>
   <SearchBar />
-  <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+  <p class="mt-4 text-sm text-gh-muted">
     Enter a GitHub username to explore their profile and repositories.
   </p>
 </div>

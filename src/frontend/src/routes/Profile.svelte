@@ -71,11 +71,11 @@
   }
 </script>
 
-<div class="min-h-screen bg-white dark:bg-gray-900">
+<div class="min-h-screen bg-gh-page">
   <!-- Compact header with search -->
-  <header class="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+  <header class="sticky top-0 z-10 border-b border-gh-border bg-gh-page/80 backdrop-blur-sm">
     <div class="max-w-4xl mx-auto px-4 py-3 flex items-center gap-4">
-      <a href="/" class="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 hover:opacity-80 flex-shrink-0">
+      <a href="/" class="text-lg sm:text-xl font-bold text-gh-text hover:opacity-80 flex-shrink-0">
         GitHub Explorer
       </a>
       <div class="flex-1 max-w-none sm:max-w-md">
@@ -93,7 +93,7 @@
 
       {#if currentUser.profile}
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <h2 class="text-lg font-semibold text-gh-text">
             Repositories
           </h2>
           <PageSizeSelector

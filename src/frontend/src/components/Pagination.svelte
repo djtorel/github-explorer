@@ -36,7 +36,7 @@
 </script>
 
 <div class="flex items-center justify-between">
-  <div class="text-sm text-gray-500 dark:text-gray-400">
+  <div class="text-sm text-gh-muted">
     Page {page} of {totalPages}
   </div>
   <div class="flex items-center gap-1">
@@ -44,9 +44,9 @@
       onclick={() => goToPage(page - 1)}
       disabled={!canGoPrev}
       class="px-2 py-1.5 sm:px-3 rounded-md text-xs sm:text-sm font-medium
-             bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-             text-gray-700 dark:text-gray-300
-             hover:bg-gray-50 dark:hover:bg-gray-700
+             bg-gh-card border border-gh-border
+             text-gh-text
+             hover:bg-gh-hover
              disabled:opacity-40 disabled:cursor-not-allowed"
     >
       ← Prev
@@ -59,7 +59,7 @@
           class="px-3 py-1.5 rounded-md text-sm font-medium min-w-[2.5rem]
                  {p === page
                    ? 'bg-blue-600 text-white border border-blue-600'
-                   : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}"
+                   : 'bg-gh-card border border-gh-border text-gh-text hover:bg-gh-hover'}"
         >
           {p}
         </button>
@@ -70,9 +70,9 @@
       onclick={() => goToPage(page + 1)}
       disabled={!canGoNext}
       class="px-2 py-1.5 sm:px-3 rounded-md text-xs sm:text-sm font-medium
-             bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-             text-gray-700 dark:text-gray-300
-             hover:bg-gray-50 dark:hover:bg-gray-700
+             bg-gh-card border border-gh-border
+             text-gh-text
+             hover:bg-gh-hover
              disabled:opacity-40 disabled:cursor-not-allowed"
     >
       Next →

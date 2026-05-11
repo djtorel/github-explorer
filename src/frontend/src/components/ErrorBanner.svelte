@@ -36,7 +36,7 @@
           icon: AlertIcon,
           title: 'Something went wrong',
           message: error.message || 'Please try again',
-          style: 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300',
+          style: 'border-gh-border bg-gh-card/50 text-gh-muted',
         };
     }
   });

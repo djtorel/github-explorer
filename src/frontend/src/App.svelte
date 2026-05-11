@@ -11,6 +11,6 @@
   };
 </script>
 
-<main class="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+<main class="min-h-screen bg-gh-page text-gh-text">
   <Router {routes} />
 </main>

@@ -1,17 +1,29 @@
 @import "tailwindcss";
 
-:root {
-	--bg-page: #ffffff;
-	--bg-card: #f6f8fa;
-	--text-primary: #24292f;
-	--text-secondary: #656d76;
-	--border: #d0d7de;
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-gh-page: #ffffff;
+  --color-gh-card: #f6f8fa;
+  --color-gh-text: #24292f;
+  --color-gh-muted: #656d76;
+  --color-gh-border: #d0d7de;
+  --color-gh-hover: #f3f4f6;
+  --color-gh-link: #0969da;
+  --color-gh-badge: #eff1f3;
+  --color-gh-skeleton: #e1e4e8;
+  --color-gh-skeleton-inner: #d0d7de;
 }
 
 .dark {
-	--bg-page: #0d1117;
-	--bg-card: #161b22;
-	--text-primary: #c9d1d9;
-	--text-secondary: #8b949e;
-	--border: #30363d;
+  --color-gh-page: #0d1117;
+  --color-gh-card: #161b22;
+  --color-gh-text: #c9d1d9;
+  --color-gh-muted: #8b949e;
+  --color-gh-border: #30363d;
+  --color-gh-hover: #21262d;
+  --color-gh-link: #58a6ff;
+  --color-gh-badge: #21262d;
+  --color-gh-skeleton: #21262d;
+  --color-gh-skeleton-inner: #30363d;
 }

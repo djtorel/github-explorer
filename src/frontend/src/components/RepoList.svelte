@@ -15,7 +15,7 @@
   {#if loading}
     <Skeleton variant="repo" count={5} />
   {:else if repos.length === 0}
-    <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+    <div class="text-center py-12 text-gh-muted">
       <p class="text-lg font-medium">No public repositories</p>
       <p class="text-sm mt-1">This user hasn't published any repositories yet.</p>
     </div>

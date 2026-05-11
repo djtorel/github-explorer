@@ -6,6 +6,7 @@
     <Project Path="src/GitHubExplorer.Infrastructure/GitHubExplorer.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/GitHubExplorer.Api.Tests/GitHubExplorer.Api.Tests.csproj" />
     <Project Path="tests/GitHubExplorer.Application.Tests/GitHubExplorer.Application.Tests.csproj" />
     <Project Path="tests/GitHubExplorer.Domain.Tests/GitHubExplorer.Domain.Tests.csproj" />
     <Project Path="tests/GitHubExplorer.Infrastructure.Tests/GitHubExplorer.Infrastructure.Tests.csproj" />

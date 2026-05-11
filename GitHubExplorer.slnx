@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GitHubExplorer.Domain/GitHubExplorer.Domain.csproj" />
+  </Folder>
+</Solution>

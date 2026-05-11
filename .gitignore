@@ -1,0 +1,25 @@
+.planning/
+
+# .NET build artifacts
+bin/
+obj/
+*.dll
+*.pdb
+*.deps.json
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+# NuGet
+*.nupkg
+
+# Test results
+TestResults/
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db

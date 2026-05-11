@@ -10,10 +10,11 @@ function getInitialTheme(): "light" | "dark" {
 
 export const theme = $state({ mode: getInitialTheme() });
 
-$effect(() => {
-	document.documentElement.classList.toggle("dark", theme.mode === "dark");
-	localStorage.setItem("github-explorer-theme", theme.mode);
-});
+export function setTheme(mode: "light" | "dark") {
+	theme.mode = mode;
+	document.documentElement.classList.toggle("dark", mode === "dark");
+	localStorage.setItem("github-explorer-theme", mode);
+}
 
 export const currentUser = $state({
 	username: "",

@@ -1,9 +1,13 @@
 <script lang="ts">
-  import { theme } from '../lib/state.svelte.js';
+  import { setTheme, theme } from '../lib/state.svelte.js';
+
+  function toggleTheme() {
+    setTheme(theme.mode === 'dark' ? 'light' : 'dark');
+  }
 </script>
 
 <button
-  onclick={() => theme.mode = theme.mode === 'dark' ? 'light' : 'dark'}
+  onclick={toggleTheme}
   class="rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
   aria-label={theme.mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
 >

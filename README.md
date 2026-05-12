@@ -350,9 +350,9 @@ export const currentUser = $state({
 
 ## API Endpoints
 
-| Endpoint                                               | Description                                          |
-| ------------------------------------------------------ | ---------------------------------------------------- |
-| `GET /api/users/{username}`                            | Fetch user profile                                   |
+| Endpoint                                                             | Description                                                                             |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `GET /api/users/{username}`                                          | Fetch user profile                                                                      |
 | `GET /api/users/{username}/repos?page={n}&perPage={n}&sortBy={sort}` | Fetch paginated repositories (sort: `stars_desc`, `stars_asc`, `name_asc`, `name_desc`) |
 
 All responses use the envelope:

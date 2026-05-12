@@ -20,6 +20,12 @@ obj/
 TestResults/
 coverage/
 
+# pi tooling
+.pi-lens/
+
+# Frontend test artifacts
+test-results/
+
 # OS
 .DS_Store
 Thumbs.db

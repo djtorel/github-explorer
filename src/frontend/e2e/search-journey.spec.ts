@@ -85,4 +85,23 @@ test.describe("Search Journey", () => {
 		await expect(page.getByText("@octocat")).toBeVisible({ timeout: 10000 });
 		await expect(page.getByText("The Octocat")).toBeVisible();
 	});
+
+	test("user can sort repositories by name", async ({ page }) => {
+		let capturedUrl: string | null = null;
+
+		await page.route("**/api/users/octocat/repos**", async (route) => {
+			capturedUrl = route.request().url();
+			await route.fulfill({ json: mockRepos });
+		});
+
+		await page.goto("/#/user/octocat");
+		await expect(page.getByText("@octocat")).toBeVisible({ timeout: 10000 });
+
+		const sortSelect = page.getByLabel("Sort repositories");
+		await expect(sortSelect).toBeVisible();
+		await sortSelect.selectOption("name_asc");
+
+		await expect(page.getByText("repo1")).toBeVisible();
+		expect(capturedUrl).toContain("sortBy=name_asc");
+	});
 });

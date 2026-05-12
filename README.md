@@ -14,7 +14,7 @@ A web application for searching GitHub users by username and exploring their pub
 6. **Direct URLs** — Share or bookmark any profile via `/user/{username}`.
 7. **Dark / Light Mode** — Toggle between themes; preference is persisted in `localStorage`.
 8. **Error Handling** — Graceful, contextual messages for "user not found", rate limits, network errors, and empty repositories. Includes retry for recoverable errors.
-9. **Tested** — 126 automated tests across 6 test suites (backend unit, integration, frontend component, E2E).
+9. **Tested** — 129 automated tests across 6 test suites (backend unit, integration, frontend component, E2E).
 
 ---
 
@@ -113,19 +113,19 @@ dotnet run
 ### Run Tests
 
 ```bash
-# Backend — full suite (85 tests)
+# Backend — full suite (89 tests)
 dotnet test
 
 # Backend — per project
 dotnet test tests/GitHubExplorer.Domain.Tests          # 25 tests
 dotnet test tests/GitHubExplorer.Application.Tests     # 17 tests
-dotnet test tests/GitHubExplorer.Infrastructure.Tests  # 31 tests
-dotnet test tests/GitHubExplorer.Api.Tests             # 12 integration tests
+dotnet test tests/GitHubExplorer.Infrastructure.Tests  # 33 tests
+dotnet test tests/GitHubExplorer.Api.Tests             # 14 integration tests
 
-# Frontend — component tests (31 tests)
+# Frontend — component tests (34 tests)
 cd src/frontend && npm test
 
-# Frontend — E2E tests (5 tests, headless Chromium)
+# Frontend — E2E tests (6 tests, headless Chromium)
 cd src/frontend && npx playwright test
 
 # Frontend — E2E with UI mode
@@ -252,15 +252,15 @@ client.GetUserAsync(username)
 
 **Decision:** Four-layer test pyramid — unit, integration, component, and E2E.
 
-| Layer               | Count   | Framework                                 | What They Verify                                       |
-| ------------------- | ------- | ----------------------------------------- | ------------------------------------------------------ |
-| Domain Unit         | 25      | xUnit + Shouldly                          | `Result<T>`, async extensions, model construction      |
-| Application Unit    | 17      | xUnit + Shouldly + NSubstitute            | Service logic, mapping, null handling                  |
-| Infrastructure Unit | 33      | xUnit + Shouldly + FakeHttpMessageHandler | `GitHubApiClient`, Polly policies, config validation, sorting |
+| Layer               | Count   | Framework                                 | What They Verify                                                  |
+| ------------------- | ------- | ----------------------------------------- | ----------------------------------------------------------------- |
+| Domain Unit         | 25      | xUnit + Shouldly                          | `Result<T>`, async extensions, model construction                 |
+| Application Unit    | 17      | xUnit + Shouldly + NSubstitute            | Service logic, mapping, null handling                             |
+| Infrastructure Unit | 33      | xUnit + Shouldly + FakeHttpMessageHandler | `GitHubApiClient`, Polly policies, config validation, sorting     |
 | API Integration     | 14      | xUnit + WebApplicationFactory             | All endpoints + error codes (404, 429, 503, 400), sort validation |
-| Frontend Components | 34      | Vitest + jsdom + @testing-library/svelte  | Rendering, interaction, accessibility for 7 components |
-| Frontend E2E        | 5       | Playwright (Chromium)                     | Full user journey, error states, theme toggle          |
-| **Total**           | **128** |                                           |                                                        |
+| Frontend Components | 34      | Vitest + jsdom + @testing-library/svelte  | Rendering, interaction, accessibility for 7 components            |
+| Frontend E2E        | 6       | Playwright (Chromium)                     | Full user journey, error states, theme toggle, sorting            |
+| **Total**           | **129** |                                           |                                                                   |
 
 **Why:**
 

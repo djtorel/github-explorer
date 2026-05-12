@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fetchUser, fetchRepos } from '../lib/api.js';
-  import { currentUser } from '../lib/state.svelte.js';
+  import { currentUser, createUserState } from '../lib/state.svelte.js';
   import ProfileCard from '../components/ProfileCard.svelte';
   import SearchBar from '../components/SearchBar.svelte';
   import RepoList from '../components/RepoList.svelte';
@@ -16,31 +16,26 @@
 
   let { params = {} }: Props = $props();
 
+  function resetUserState(username: string) {
+    Object.assign(currentUser, createUserState(), { username, loading: true });
+  }
+
   $effect(() => {
     const username = params.username;
     if (!username) return;
 
-    currentUser.username = username;
-    currentUser.page = 1;
-    currentUser.perPage = 30;
-    currentUser.sortBy = 'stars_desc';
-    currentUser.loading = true;
-    currentUser.error = null;
-    currentUser.profile = null;
-    currentUser.repos = [];
-    currentUser.totalCount = 0;
-
+    resetUserState(username);
     loadProfile(username);
   });
 
   async function loadProfile(username: string) {
     const userResult = await fetchUser(username);
-    if (userResult.error) {
+    if (!userResult.ok) {
       currentUser.error = userResult.error;
       currentUser.loading = false;
       return;
     }
-    currentUser.profile = userResult.data ?? null;
+    currentUser.profile = userResult.value;
 
     await loadRepos(1, 30);
   }
@@ -48,9 +43,11 @@
   async function loadRepos(page: number, perPage: number) {
     currentUser.loading = true;
     const result = await fetchRepos(currentUser.username, page, perPage, currentUser.sortBy);
-    if (result.data) {
-      currentUser.repos = result.data.items;
-      currentUser.totalCount = result.data.totalCount;
+    if (result.ok) {
+      currentUser.repos = result.value.items;
+      currentUser.totalCount = result.value.totalCount;
+    } else {
+      currentUser.error = result.error;
     }
     currentUser.loading = false;
   }

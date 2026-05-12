@@ -1,4 +1,4 @@
-import type { UserProfile, Repository, ApiError } from "./types.js";
+import type { UserProfile, Repository, ApiError, SortBy } from "./types.js";
 
 function getInitialTheme(): "light" | "dark" {
 	const stored = localStorage.getItem("github-explorer-theme");
@@ -16,14 +16,30 @@ export function setTheme(mode: "light" | "dark") {
 	localStorage.setItem("github-explorer-theme", mode);
 }
 
-export const currentUser = $state({
-	username: "",
-	profile: null as UserProfile | null,
-	repos: [] as Repository[],
-	totalCount: 0,
-	page: 1,
-	perPage: 30,
-	sortBy: "stars_desc" as "stars_desc" | "stars_asc" | "name_asc" | "name_desc",
-	loading: false,
-	error: null as ApiError | null,
-});
+export interface UserState {
+	username: string;
+	profile: UserProfile | null;
+	repos: Repository[];
+	totalCount: number;
+	page: number;
+	perPage: number;
+	sortBy: SortBy;
+	loading: boolean;
+	error: ApiError | null;
+}
+
+export function createUserState(): UserState {
+	return {
+		username: "",
+		profile: null,
+		repos: [],
+		totalCount: 0,
+		page: 1,
+		perPage: 30,
+		sortBy: "stars_desc",
+		loading: false,
+		error: null,
+	};
+}
+
+export const currentUser = $state<UserState>(createUserState());

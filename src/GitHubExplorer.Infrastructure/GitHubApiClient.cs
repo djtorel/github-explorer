@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using GitHubExplorer.Domain.Enums;
 using GitHubExplorer.Domain.Interfaces;
 using GitHubExplorer.Domain.Models;
@@ -49,13 +50,12 @@ public sealed class GitHubApiClient(HttpClient httpClient, ILogger<GitHubApiClie
 
         while (!string.IsNullOrEmpty(nextUrl) && currentPage <= maxPages)
         {
-            var result = await FetchSinglePageAsync(nextUrl, fetchPerPage, ct, isRelative: true);
+            var result = await FetchPageWithMetadataAsync(nextUrl, fetchPerPage, ct, isRelative: true);
             if (!result.IsSuccess)
-                return result;
+                return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(result.Error);
 
             allRepos.AddRange(result.Value.Items);
-
-            nextUrl = GetNextPageUrl(result.Value.Items.Count == fetchPerPage);
+            nextUrl = result.Value.NextUrl;
             currentPage++;
         }
 
@@ -75,21 +75,9 @@ public sealed class GitHubApiClient(HttpClient httpClient, ILogger<GitHubApiClie
         return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((paged, totalCount));
     }
 
-    private static string? _lastLinkHeader;
+    private sealed record FetchPageResult(IReadOnlyList<Repository> Items, int TotalCount, string? NextUrl);
 
-    private static string? GetNextPageUrl(bool hasMorePages)
-    {
-        if (!hasMorePages || string.IsNullOrWhiteSpace(_lastLinkHeader))
-            return null;
-
-        var nextMatch = System.Text.RegularExpressions.Regex.Match(
-            _lastLinkHeader,
-            @"<([^>]+)>;\s*rel=""next""");
-
-        return nextMatch.Success ? nextMatch.Groups[1].Value : null;
-    }
-
-    private async Task<Result<(IReadOnlyList<Repository> Items, int TotalCount)>> FetchSinglePageAsync(
+    private async Task<Result<FetchPageResult>> FetchPageWithMetadataAsync(
         string url, int perPage, CancellationToken ct, bool isRelative = false)
     {
         try
@@ -102,41 +90,56 @@ public sealed class GitHubApiClient(HttpClient httpClient, ILogger<GitHubApiClie
             {
                 if (error.Value == GitHubError.Unknown)
                     logger.LogWarning("Unexpected status code {StatusCode} from GitHub API", response.StatusCode);
-                return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(error.Value);
+                return Result<FetchPageResult>.Failure(error.Value);
             }
 
             var repos = await response.Content.ReadFromJsonAsync<List<Repository>>(JsonOptions, ct);
 
             if (repos is null || repos.Count == 0)
-                return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.EmptyResult);
+                return Result<FetchPageResult>.Failure(GitHubError.EmptyResult);
 
             var linkHeader = response.Headers.TryGetValues("Link", out var linkValues)
                 ? linkValues.FirstOrDefault()
                 : null;
-            _lastLinkHeader = linkHeader;
 
             var totalCount = ExtractTotalCountFromLinkHeader(linkHeader, perPage);
             if (totalCount == 0) totalCount = repos.Count;
 
-            return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((repos, totalCount));
+            var nextUrl = ExtractNextUrl(linkHeader);
+
+            return Result<FetchPageResult>.Success(new FetchPageResult(repos, totalCount, nextUrl));
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             logger.LogWarning("GitHub API request timed out for repos");
-            return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.NetworkError);
+            return Result<FetchPageResult>.Failure(GitHubError.NetworkError);
         }
         catch (HttpRequestException ex)
         {
             logger.LogWarning(ex, "Network error calling GitHub API for repos");
-            return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.NetworkError);
+            return Result<FetchPageResult>.Failure(GitHubError.NetworkError);
         }
+    }
+
+    private async Task<Result<(IReadOnlyList<Repository> Items, int TotalCount)>> FetchSinglePageAsync(
+        string url, int perPage, CancellationToken ct, bool isRelative = false) =>
+        (await FetchPageWithMetadataAsync(url, perPage, ct, isRelative))
+            .Map(r => (r.Items, r.TotalCount));
+
+    private static string? ExtractNextUrl(string? linkHeader)
+    {
+        if (string.IsNullOrWhiteSpace(linkHeader))
+            return null;
+
+        var nextMatch = Regex.Match(linkHeader, @"<([^>]+)>;\s*rel=""next""");
+        return nextMatch.Success ? nextMatch.Groups[1].Value : null;
     }
 
     private static int ExtractTotalCountFromLinkHeader(string? linkHeader, int perPage)
     {
         if (string.IsNullOrWhiteSpace(linkHeader)) return 0;
 
-        var lastMatch = System.Text.RegularExpressions.Regex.Match(
+        var lastMatch = Regex.Match(
             linkHeader,
             @"<[^>]+[?&]page=(\d+)[^>]*>;\s*rel=""last""");
 

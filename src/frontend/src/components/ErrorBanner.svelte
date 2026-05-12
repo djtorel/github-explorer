@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ApiError } from '../lib/types.js';
+  import { ErrorCodes } from '../lib/error-codes.js';
 
   interface Props {
     error: ApiError;
@@ -10,21 +11,21 @@
 
   const config = $derived.by(() => {
     switch (error.code) {
-      case 'NotFound':
+      case ErrorCodes.NotFound:
         return {
           icon: QuestionMarkIcon,
           title: 'User not found',
           message: 'Try a different username',
           style: 'border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300',
         };
-      case 'RateLimited':
+      case ErrorCodes.RateLimited:
         return {
           icon: ClockIcon,
           title: 'Rate limit exceeded',
           message: 'Try again in a few minutes',
           style: 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300',
         };
-      case 'NetworkError':
+      case ErrorCodes.NetworkError:
         return {
           icon: WifiOffIcon,
           title: 'Connection error',
@@ -41,7 +42,7 @@
     }
   });
 
-  const showRetry = $derived(error.code === 'NetworkError' && onRetry);
+  const showRetry = $derived(error.code === ErrorCodes.NetworkError && onRetry);
 </script>
 
 {#snippet QuestionMarkIcon()}

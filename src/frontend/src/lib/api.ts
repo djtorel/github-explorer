@@ -2,26 +2,28 @@ import type {
 	UserProfile,
 	PaginatedRepositories,
 	ApiError,
-	ApiResponse,
 	SortBy,
 } from "./types.js";
+import { ok, err, type Result } from "./result.js";
+import { ErrorCodes } from "./error-codes.js";
 
 const API_BASE = "/api";
 
 export async function fetchUser(
 	username: string,
-): Promise<{ data?: UserProfile; error?: ApiError }> {
+): Promise<Result<UserProfile>> {
 	try {
 		const res = await fetch(
 			`${API_BASE}/users/${encodeURIComponent(username)}`,
 		);
-		const json: ApiResponse<UserProfile> = await res.json();
-		if (!json.success) return { error: json.error };
-		return { data: json.data };
+		const json = await res.json();
+		if (!json.success) return err(json.error as ApiError);
+		return ok(json.data as UserProfile);
 	} catch {
-		return {
-			error: { code: "NetworkError", message: "Unable to reach the server." },
-		};
+		return err({
+			code: ErrorCodes.NetworkError,
+			message: "Unable to reach the server.",
+		});
 	}
 }
 
@@ -30,7 +32,7 @@ export async function fetchRepos(
 	page: number,
 	perPage: number,
 	sortBy: SortBy = "stars_desc",
-): Promise<{ data?: PaginatedRepositories; error?: ApiError }> {
+): Promise<Result<PaginatedRepositories>> {
 	try {
 		const params = new URLSearchParams({
 			page: String(page),
@@ -40,12 +42,13 @@ export async function fetchRepos(
 		const res = await fetch(
 			`${API_BASE}/users/${encodeURIComponent(username)}/repos?${params}`,
 		);
-		const json: ApiResponse<PaginatedRepositories> = await res.json();
-		if (!json.success) return { error: json.error };
-		return { data: json.data };
+		const json = await res.json();
+		if (!json.success) return err(json.error as ApiError);
+		return ok(json.data as PaginatedRepositories);
 	} catch {
-		return {
-			error: { code: "NetworkError", message: "Unable to reach the server." },
-		};
+		return err({
+			code: ErrorCodes.NetworkError,
+			message: "Unable to reach the server.",
+		});
 	}
 }

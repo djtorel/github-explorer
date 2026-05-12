@@ -13,7 +13,7 @@
   <span>Show</span>
   <select
     {value}
-    onchange={(e) => onChange(Number((e.target as HTMLSelectElement).value))}
+    onchange={(e) => onChange(Number(e.currentTarget.value))}
     class="px-2 py-1 rounded-md border border-gh-border
            bg-gh-card text-gh-text
            focus:outline-none focus:ring-2 focus:ring-blue-500"

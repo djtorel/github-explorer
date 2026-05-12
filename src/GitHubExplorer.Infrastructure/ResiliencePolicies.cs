@@ -6,18 +6,24 @@ namespace GitHubExplorer.Infrastructure;
 
 public static class ResiliencePolicies
 {
+    private const int RetryCount = 3;
+    private const int RetryDelaySeconds = 2;
+    private const int CircuitBreakerFailures = 5;
+    private const int CircuitBreakerDurationSeconds = 30;
+
     public static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(ILogger logger) =>
         Policy<HttpResponseMessage>
             .Handle<HttpRequestException>()
             .Or<TaskCanceledException>()
             .OrResult(r => (int)r.StatusCode >= 500)
             .WaitAndRetryAsync(
-                retryCount: 3,
-                sleepDurationProvider: _ => TimeSpan.FromSeconds(2),
+                retryCount: RetryCount,
+                sleepDurationProvider: _ => TimeSpan.FromSeconds(RetryDelaySeconds),
                 onRetry: (result, timeSpan, retryCount, _) =>
                     logger.LogWarning(
-                        "Retry {RetryCount}/3 after {Delay}s due to {Reason}",
+                        "Retry {RetryCount}/{MaxRetries} after {Delay}s due to {Reason}",
                         retryCount,
+                        RetryCount,
                         timeSpan.TotalSeconds,
                         result.Exception?.GetType().Name ?? $"HTTP {(int)result.Result.StatusCode}"));
 
@@ -27,8 +33,8 @@ public static class ResiliencePolicies
             .Or<TaskCanceledException>()
             .OrResult(r => (int)r.StatusCode >= 500)
             .CircuitBreakerAsync(
-                5,
-                TimeSpan.FromSeconds(30),
+                CircuitBreakerFailures,
+                TimeSpan.FromSeconds(CircuitBreakerDurationSeconds),
                 (result, duration) =>
                     logger.LogWarning(
                         "Circuit breaker opened for {Duration}s due to {Reason}",

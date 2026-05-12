@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 
 namespace GitHubExplorer.Infrastructure;
 
-public class GitHubApiOptionsValidation : IValidateOptions<GitHubApiOptions>
+public sealed class GitHubApiOptionsValidation : IValidateOptions<GitHubApiOptions>
 {
     public ValidateOptionsResult Validate(string? name, GitHubApiOptions options) =>
         ValidateBaseUrl(options)

@@ -13,6 +13,7 @@ A web application for searching GitHub users by username and exploring their pub
 5. **Direct URLs** — Share or bookmark any profile via `/user/{username}`.
 6. **Dark / Light Mode** — Toggle between themes; preference is persisted in `localStorage`.
 7. **Error Handling** — Graceful, contextual messages for "user not found", rate limits, network errors, and empty repositories. Includes retry for recoverable errors.
+8. **Tested** — 121 automated tests across 6 test suites (backend unit, integration, frontend component, E2E).
 
 ---
 
@@ -111,12 +112,23 @@ dotnet run
 ### Run Tests
 
 ```bash
-# Backend unit tests
+# Backend — full suite (85 tests)
 dotnet test
 
-# Or per project
-dotnet test tests/GitHubExplorer.Application.Tests
-dotnet test tests/GitHubExplorer.Infrastructure.Tests
+# Backend — per project
+dotnet test tests/GitHubExplorer.Domain.Tests          # 25 tests
+dotnet test tests/GitHubExplorer.Application.Tests     # 17 tests
+dotnet test tests/GitHubExplorer.Infrastructure.Tests  # 31 tests
+dotnet test tests/GitHubExplorer.Api.Tests             # 12 integration tests
+
+# Frontend — component tests (31 tests)
+cd src/frontend && npm test
+
+# Frontend — E2E tests (5 tests, headless Chromium)
+cd src/frontend && npx playwright test
+
+# Frontend — E2E with UI mode
+cd src/frontend && npx playwright test --ui
 ```
 
 ---
@@ -151,18 +163,25 @@ src/
     │   ├── lib/
     │   │   ├── api.ts               # Fetch wrappers for backend API
     │   │   ├── state.svelte.ts      # Global reactive state (runes)
+    │   │   ├── test-setup.ts        # Vitest setup (matchMedia, localStorage mocks)
     │   │   └── types.ts             # TypeScript domain types
     │   ├── routes/
     │   │   ├── Home.svelte          # Search landing page
     │   │   ├── Profile.svelte       # Profile + repo list page
     │   │   └── NotFound.svelte      # 404 page
-    │   └── components/              # SearchBar, ProfileCard, RepoList, etc.
+    │   ├── components/              # SearchBar, ProfileCard, RepoList, etc.
+    │   │   └── __tests__/           # Component test files (Vitest)
+    │   └── e2e/                     # Playwright E2E specs
     ├── package.json
-    └── vite.config.ts
+    ├── vite.config.ts
+    ├── vitest.config.ts
+    └── playwright.config.ts
 
 tests/
-├── GitHubExplorer.Application.Tests/   # Service logic (NSubstitute mocks)
-└── GitHubExplorer.Infrastructure.Tests/# API client, Result<T>, options validation
+├── GitHubExplorer.Domain.Tests/        # Result<T>, async extensions, model tests
+├── GitHubExplorer.Application.Tests/   # Service logic, mapping tests (NSubstitute mocks)
+├── GitHubExplorer.Infrastructure.Tests/# API client, resilience, options validation
+└── GitHubExplorer.Api.Tests/           # Integration tests via WebApplicationFactory
 ```
 
 ---
@@ -228,15 +247,28 @@ client.GetUserAsync(username)
 
 **Why:** Prevents accidental inheritance, signals intent, and avoids defensive-null-check boilerplate. `readonly struct` on `Result<T>` prevents defensive copying overhead for a small wrapper type.
 
-### 9. Testing Strategy
+### 9. Testing Strategy (Full Pyramid)
 
-**Decision:** xUnit + Shouldly + NSubstitute. No real HTTP calls in unit tests — a `FakeHttpMessageHandler` intercepts `HttpClient` traffic.
+**Decision:** Four-layer test pyramid — unit, integration, component, and E2E.
+
+| Layer | Count | Framework | What They Verify |
+|-------|-------|-----------|------------------|
+| Domain Unit | 25 | xUnit + Shouldly | `Result<T>`, async extensions, model construction |
+| Application Unit | 17 | xUnit + Shouldly + NSubstitute | Service logic, mapping, null handling |
+| Infrastructure Unit | 31 | xUnit + Shouldly + FakeHttpMessageHandler | `GitHubApiClient`, Polly policies, config validation |
+| API Integration | 12 | xUnit + WebApplicationFactory | All endpoints + error codes (404, 429, 503, 400) |
+| Frontend Components | 31 | Vitest + jsdom + @testing-library/svelte | Rendering, interaction, accessibility for 6 components |
+| Frontend E2E | 5 | Playwright (Chromium) | Full user journey, error states, theme toggle |
+| **Total** | **121** | | |
 
 **Why:**
 
-- **Shouldly** over FluentAssertions — FluentAssertions switched to a commercial license in 2025. Shouldly is fully open-source and produces equally readable assertions (`result.ShouldBe(expected)`).
-- **NSubstitute** over Moq — Cleaner API and avoids community friction Moq experienced with telemetry.
-- **FakeHttpMessageHandler** — Tests run fast, deterministic, and offline. Every success path, error path, and edge case (null fields, rate limit headers, network exceptions) is covered.
+- **Shouldly** over FluentAssertions — FluentAssertions switched to a commercial license in 2025. Shouldly is fully open-source.
+- **NSubstitute** over Moq — Cleaner API, no telemetry controversy.
+- **FakeHttpMessageHandler** — Tests run fast, deterministic, and offline.
+- **WebApplicationFactory** — Integration tests exercise the full HTTP pipeline without hitting real GitHub API.
+- **@testing-library/svelte** — Component tests render real Svelte components in jsdom, verifying DOM output and user interactions.
+- **Playwright** — E2E tests mock API responses via `page.route()` for deterministic, fast runs (~2s).
 
 ### 10. Single-Server Deployment
 
@@ -353,7 +385,9 @@ On failure:
 | Resilience | Polly (retry + circuit breaker)     |
 | Frontend   | Svelte 5, Vite, TypeScript          |
 | Styling    | Tailwind CSS v4                     |
-| Testing    | xUnit, Shouldly, NSubstitute        |
+| Testing (backend) | xUnit, Shouldly, NSubstitute, coverlet |
+| Testing (frontend unit) | Vitest, jsdom, @testing-library/svelte, @testing-library/jest-dom |
+| Testing (frontend E2E) | Playwright (Chromium) |
 | Build      | Vite (frontend), `dotnet` (backend) |
 
 ---

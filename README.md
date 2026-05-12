@@ -8,12 +8,13 @@ A web application for searching GitHub users by username and exploring their pub
 
 1. **Search** — Enter any GitHub username on the home page.
 2. **Profile** — View the user's avatar, name, bio, follower count, and public repository count.
-3. **Repositories** — Browse a paginated list of public repositories sorted by star count (descending). Each repo shows its description, star count, fork count, and primary language.
-4. **Pagination** — Navigate through pages and choose page sizes of 10, 30, or 50.
-5. **Direct URLs** — Share or bookmark any profile via `/user/{username}`.
-6. **Dark / Light Mode** — Toggle between themes; preference is persisted in `localStorage`.
-7. **Error Handling** — Graceful, contextual messages for "user not found", rate limits, network errors, and empty repositories. Includes retry for recoverable errors.
-8. **Tested** — 121 automated tests across 6 test suites (backend unit, integration, frontend component, E2E).
+3. **Repositories** — Browse a paginated list of public repositories. Each repo shows its description, star count, fork count, and primary language.
+4. **Sorting** — Sort repositories by star count (high → low, or low → high) or by name (A → Z, or Z → A). Star sort is the default.
+5. **Pagination** — Navigate through pages and choose page sizes of 10, 30, or 50.
+6. **Direct URLs** — Share or bookmark any profile via `/user/{username}`.
+7. **Dark / Light Mode** — Toggle between themes; preference is persisted in `localStorage`.
+8. **Error Handling** — Graceful, contextual messages for "user not found", rate limits, network errors, and empty repositories. Includes retry for recoverable errors.
+9. **Tested** — 126 automated tests across 6 test suites (backend unit, integration, frontend component, E2E).
 
 ---
 
@@ -251,15 +252,15 @@ client.GetUserAsync(username)
 
 **Decision:** Four-layer test pyramid — unit, integration, component, and E2E.
 
-| Layer | Count | Framework | What They Verify |
-|-------|-------|-----------|------------------|
-| Domain Unit | 25 | xUnit + Shouldly | `Result<T>`, async extensions, model construction |
-| Application Unit | 17 | xUnit + Shouldly + NSubstitute | Service logic, mapping, null handling |
-| Infrastructure Unit | 31 | xUnit + Shouldly + FakeHttpMessageHandler | `GitHubApiClient`, Polly policies, config validation |
-| API Integration | 12 | xUnit + WebApplicationFactory | All endpoints + error codes (404, 429, 503, 400) |
-| Frontend Components | 31 | Vitest + jsdom + @testing-library/svelte | Rendering, interaction, accessibility for 6 components |
-| Frontend E2E | 5 | Playwright (Chromium) | Full user journey, error states, theme toggle |
-| **Total** | **121** | | |
+| Layer               | Count   | Framework                                 | What They Verify                                       |
+| ------------------- | ------- | ----------------------------------------- | ------------------------------------------------------ |
+| Domain Unit         | 25      | xUnit + Shouldly                          | `Result<T>`, async extensions, model construction      |
+| Application Unit    | 17      | xUnit + Shouldly + NSubstitute            | Service logic, mapping, null handling                  |
+| Infrastructure Unit | 33      | xUnit + Shouldly + FakeHttpMessageHandler | `GitHubApiClient`, Polly policies, config validation, sorting |
+| API Integration     | 14      | xUnit + WebApplicationFactory             | All endpoints + error codes (404, 429, 503, 400), sort validation |
+| Frontend Components | 34      | Vitest + jsdom + @testing-library/svelte  | Rendering, interaction, accessibility for 7 components |
+| Frontend E2E        | 5       | Playwright (Chromium)                     | Full user journey, error states, theme toggle          |
+| **Total**           | **128** |                                           |                                                        |
 
 **Why:**
 
@@ -379,16 +380,16 @@ On failure:
 
 ## Technology Stack
 
-| Layer      | Technology                          |
-| ---------- | ----------------------------------- |
-| Backend    | .NET 9, ASP.NET Core                |
-| Resilience | Polly (retry + circuit breaker)     |
-| Frontend   | Svelte 5, Vite, TypeScript          |
-| Styling    | Tailwind CSS v4                     |
-| Testing (backend) | xUnit, Shouldly, NSubstitute, coverlet |
+| Layer                   | Technology                                                        |
+| ----------------------- | ----------------------------------------------------------------- |
+| Backend                 | .NET 9, ASP.NET Core                                              |
+| Resilience              | Polly (retry + circuit breaker)                                   |
+| Frontend                | Svelte 5, Vite, TypeScript                                        |
+| Styling                 | Tailwind CSS v4                                                   |
+| Testing (backend)       | xUnit, Shouldly, NSubstitute, coverlet                            |
 | Testing (frontend unit) | Vitest, jsdom, @testing-library/svelte, @testing-library/jest-dom |
-| Testing (frontend E2E) | Playwright (Chromium) |
-| Build      | Vite (frontend), `dotnet` (backend) |
+| Testing (frontend E2E)  | Playwright (Chromium)                                             |
+| Build                   | Vite (frontend), `dotnet` (backend)                               |
 
 ---
 

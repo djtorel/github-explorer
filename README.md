@@ -22,7 +22,7 @@ A web application for searching GitHub users by username and exploring their pub
 
 ### Prerequisites
 
-- [.NET 9 SDK](https://dotnet.microsoft.com/download)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - [Node.js 20+](https://nodejs.org/)
 - (Optional) A GitHub Personal Access Token for higher rate limits (60 req/hr unauthenticated, 5000/hr with token)
 
@@ -139,8 +139,9 @@ cd src/frontend && npx playwright test --ui
 ```
 src/
 ├── GitHubExplorer.Domain/           # Core entities, interfaces, Result<T> type
+│   ├── Enums/                       # SortBy, GitHubError
 │   ├── Models/                      # UserProfile, Repository (sealed records)
-│   ├── Results/                     # Result<T>, GitHubError enum, async extensions
+│   ├── Results/                     # Result<T>, async extensions
 │   └── Interfaces/                  # IGitHubClient (abstraction for infra)
 │
 ├── GitHubExplorer.Application/      # Use cases, DTOs, service interfaces
@@ -170,7 +171,7 @@ src/
     │   │   ├── Home.svelte          # Search landing page
     │   │   ├── Profile.svelte       # Profile + repo list page
     │   │   └── NotFound.svelte      # 404 page
-    │   ├── components/              # SearchBar, ProfileCard, RepoList, etc.
+    │   ├── components/              # SearchBar, ProfileCard, RepoList, SortSelector, etc.
     │   │   └── __tests__/           # Component test files (Vitest)
     │   └── e2e/                     # Playwright E2E specs
     ├── package.json
@@ -303,6 +304,7 @@ export const currentUser = $state({
   totalCount: 0,
   page: 1,
   perPage: 30,
+  sortBy: "stars_desc" as "stars_desc" | "stars_asc" | "name_asc" | "name_desc",
   loading: false,
   error: null as ApiError | null,
 });
@@ -351,7 +353,7 @@ export const currentUser = $state({
 | Endpoint                                               | Description                                          |
 | ------------------------------------------------------ | ---------------------------------------------------- |
 | `GET /api/users/{username}`                            | Fetch user profile                                   |
-| `GET /api/users/{username}/repos?page={n}&perPage={n}` | Fetch paginated repositories (sorted by stars, desc) |
+| `GET /api/users/{username}/repos?page={n}&perPage={n}&sortBy={sort}` | Fetch paginated repositories (sort: `stars_desc`, `stars_asc`, `name_asc`, `name_desc`) |
 
 All responses use the envelope:
 
@@ -382,7 +384,7 @@ On failure:
 
 | Layer                   | Technology                                                        |
 | ----------------------- | ----------------------------------------------------------------- |
-| Backend                 | .NET 9, ASP.NET Core                                              |
+| Backend                 | .NET 10, ASP.NET Core                                             |
 | Resilience              | Polly (retry + circuit breaker)                                   |
 | Frontend                | Svelte 5, Vite, TypeScript                                        |
 | Styling                 | Tailwind CSS v4                                                   |

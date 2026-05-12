@@ -18,4 +18,20 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <BuildFrontend Condition="'$(BuildFrontend)' == ''">true</BuildFrontend>
+    <SpaRoot>$(MSBuildProjectDirectory)\..\frontend\</SpaRoot>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <Target Name="EnsureNodeModules" BeforeTargets="BuildFrontend" Condition="'$(BuildFrontend)' == 'true' And !Exists('$(SpaRoot)node_modules')">
+    <Message Text="Installing frontend dependencies..." Importance="high" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm install" />
+  </Target>
+
+  <Target Name="BuildFrontend" BeforeTargets="Build" Condition="'$(BuildFrontend)' == 'true'">
+    <Message Text="Building frontend..." Importance="high" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+  </Target>
+
 </Project>

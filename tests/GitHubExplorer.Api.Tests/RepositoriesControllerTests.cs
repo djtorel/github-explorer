@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using GitHubExplorer.Application.DTOs;
+using GitHubExplorer.Domain.Enums;
 using GitHubExplorer.Domain.Results;
 using NSubstitute;
 using Shouldly;
@@ -27,7 +28,7 @@ public sealed class RepositoriesControllerTests : IClassFixture<CustomWebApplica
             new("repo2", "Second", 50, 5, "TypeScript", "https://github.com/u/r2"),
             new("repo3", "Third", 25, 2, "Python", "https://github.com/u/r3"),
         };
-        _factory.GitHubServiceMock.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
+        _factory.GitHubServiceMock.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<RepositoryDto> Items, int TotalCount)>.Success((repos, repos.Count)));
 
         var response = await _client.GetAsync("/api/users/octocat/repos?page=1&perPage=30");
@@ -54,9 +55,37 @@ public sealed class RepositoriesControllerTests : IClassFixture<CustomWebApplica
     }
 
     [Fact]
+    public async Task GetRepositories_InvalidSortBy_Returns400()
+    {
+        var response = await _client.GetAsync("/api/users/octocat/repos?page=1&perPage=30&sortBy=invalid");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await DeserializeAsync<ApiErrorDto>(response);
+        body.Code.ShouldBe("InvalidSortBy");
+    }
+
+    [Fact]
+    public async Task GetRepositories_NameSort_PassesThroughToService()
+    {
+        var repos = new List<RepositoryDto>
+        {
+            new("alpha", "Alpha", 10, 1, "C#", "https://github.com/u/alpha"),
+            new("beta", "Beta", 20, 2, "TypeScript", "https://github.com/u/beta"),
+        };
+        _factory.GitHubServiceMock.GetRepositoriesAsync("octocat", 1, 30, SortBy.NameAsc, Arg.Any<CancellationToken>())
+            .Returns(Result<(IReadOnlyList<RepositoryDto> Items, int TotalCount)>.Success((repos, repos.Count)));
+
+        var response = await _client.GetAsync("/api/users/octocat/repos?page=1&perPage=30&sortBy=name_asc");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await DeserializeAsync<ApiResponseDto<PaginatedResultDto<RepositoryDto>>>(response);
+        body.Success.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task GetRepositories_UserNotFound_Returns404()
     {
-        _factory.GitHubServiceMock.GetRepositoriesAsync("ghost", 1, 30, Arg.Any<CancellationToken>())
+        _factory.GitHubServiceMock.GetRepositoriesAsync("ghost", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<RepositoryDto> Items, int TotalCount)>.Failure(GitHubError.NotFound));
 
         var response = await _client.GetAsync("/api/users/ghost/repos?page=1&perPage=30");
@@ -71,7 +100,7 @@ public sealed class RepositoriesControllerTests : IClassFixture<CustomWebApplica
     [Fact]
     public async Task GetRepositories_RateLimited_Returns429()
     {
-        _factory.GitHubServiceMock.GetRepositoriesAsync("any", 1, 30, Arg.Any<CancellationToken>())
+        _factory.GitHubServiceMock.GetRepositoriesAsync("any", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<RepositoryDto> Items, int TotalCount)>.Failure(GitHubError.RateLimited));
 
         var response = await _client.GetAsync("/api/users/any/repos?page=1&perPage=30");
@@ -86,7 +115,7 @@ public sealed class RepositoriesControllerTests : IClassFixture<CustomWebApplica
     [Fact]
     public async Task GetRepositories_NetworkError_Returns503()
     {
-        _factory.GitHubServiceMock.GetRepositoriesAsync("any", 1, 30, Arg.Any<CancellationToken>())
+        _factory.GitHubServiceMock.GetRepositoriesAsync("any", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<RepositoryDto> Items, int TotalCount)>.Failure(GitHubError.NetworkError));
 
         var response = await _client.GetAsync("/api/users/any/repos?page=1&perPage=30");
@@ -101,7 +130,7 @@ public sealed class RepositoriesControllerTests : IClassFixture<CustomWebApplica
     [Fact]
     public async Task GetRepositories_EmptyList_Returns200WithEmptyItems()
     {
-        _factory.GitHubServiceMock.GetRepositoriesAsync("empty", 1, 30, Arg.Any<CancellationToken>())
+        _factory.GitHubServiceMock.GetRepositoriesAsync("empty", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<RepositoryDto> Items, int TotalCount)>.Success((Array.Empty<RepositoryDto>(), 0)));
 
         var response = await _client.GetAsync("/api/users/empty/repos?page=1&perPage=30");
@@ -117,7 +146,7 @@ public sealed class RepositoriesControllerTests : IClassFixture<CustomWebApplica
     [Fact]
     public async Task GetRepositories_EmptyResultError_Returns200WithEmptyArray()
     {
-        _factory.GitHubServiceMock.GetRepositoriesAsync("any", 1, 30, Arg.Any<CancellationToken>())
+        _factory.GitHubServiceMock.GetRepositoriesAsync("any", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<RepositoryDto> Items, int TotalCount)>.Failure(GitHubError.EmptyResult));
 
         var response = await _client.GetAsync("/api/users/any/repos?page=1&perPage=30");

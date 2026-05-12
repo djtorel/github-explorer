@@ -22,6 +22,8 @@ export interface PaginatedRepositories {
 	totalCount: number;
 }
 
+export type SortBy = "stars_desc" | "stars_asc" | "name_asc" | "name_desc";
+
 export interface ApiError {
 	code: string;
 	message: string;

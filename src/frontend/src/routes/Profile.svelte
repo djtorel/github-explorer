@@ -6,6 +6,7 @@
   import RepoList from '../components/RepoList.svelte';
   import Pagination from '../components/Pagination.svelte';
   import PageSizeSelector from '../components/PageSizeSelector.svelte';
+  import SortSelector from '../components/SortSelector.svelte';
   import ErrorBanner from '../components/ErrorBanner.svelte';
   import ThemeToggle from '../components/ThemeToggle.svelte';
 
@@ -22,6 +23,7 @@
     currentUser.username = username;
     currentUser.page = 1;
     currentUser.perPage = 30;
+    currentUser.sortBy = 'stars_desc';
     currentUser.loading = true;
     currentUser.error = null;
     currentUser.profile = null;
@@ -45,7 +47,7 @@
 
   async function loadRepos(page: number, perPage: number) {
     currentUser.loading = true;
-    const result = await fetchRepos(currentUser.username, page, perPage);
+    const result = await fetchRepos(currentUser.username, page, perPage, currentUser.sortBy);
     if (result.data) {
       currentUser.repos = result.data.items;
       currentUser.totalCount = result.data.totalCount;
@@ -62,6 +64,12 @@
     currentUser.perPage = newSize;
     currentUser.page = 1;
     loadRepos(1, newSize);
+  }
+
+  function handleSortChange(newSort: typeof currentUser.sortBy) {
+    currentUser.sortBy = newSort;
+    currentUser.page = 1;
+    loadRepos(1, currentUser.perPage);
   }
 
   function handleRetry() {
@@ -92,14 +100,20 @@
       <ProfileCard profile={currentUser.profile} loading={currentUser.loading} />
 
       {#if currentUser.profile}
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 class="text-lg font-semibold text-gh-text">
             Repositories
           </h2>
-          <PageSizeSelector
-            value={currentUser.perPage}
-            onChange={handlePageSizeChange}
-          />
+          <div class="flex items-center gap-3">
+            <SortSelector
+              value={currentUser.sortBy}
+              onChange={handleSortChange}
+            />
+            <PageSizeSelector
+              value={currentUser.perPage}
+              onChange={handlePageSizeChange}
+            />
+          </div>
         </div>
 
         <RepoList repos={currentUser.repos} loading={currentUser.loading} />

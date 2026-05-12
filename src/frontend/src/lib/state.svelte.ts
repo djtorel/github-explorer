@@ -23,6 +23,7 @@ export const currentUser = $state({
 	totalCount: 0,
 	page: 1,
 	perPage: 30,
+	sortBy: "stars_desc" as "stars_desc" | "stars_asc" | "name_asc" | "name_desc",
 	loading: false,
 	error: null as ApiError | null,
 });

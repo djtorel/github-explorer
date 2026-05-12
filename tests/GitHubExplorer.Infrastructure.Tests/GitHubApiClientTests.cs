@@ -1,4 +1,5 @@
 using System.Net;
+using GitHubExplorer.Domain.Enums;
 using GitHubExplorer.Domain.Models;
 using GitHubExplorer.Domain.Results;
 using Shouldly;
@@ -92,7 +93,7 @@ public class GitHubApiClientTests
     }
 
     [Fact]
-    public async Task GetRepositoriesAsync_PassesPageAndPerPageInQueryString()
+    public async Task GetRepositoriesAsync_StarSort_FetchesAllWithMaxPerPage()
     {
         string? capturedUrl = null;
         var handler = new FakeHttpMessageHandler(req =>
@@ -105,9 +106,44 @@ public class GitHubApiClientTests
         await client.GetRepositoriesAsync("octocat", 2, 50);
 
         capturedUrl.ShouldNotBeNull();
-        capturedUrl.ShouldContain("page=2");
-        capturedUrl.ShouldContain("per_page=50");
-        capturedUrl.ShouldContain("sort=stars");
+        capturedUrl.ShouldContain("page=1");
+        capturedUrl.ShouldContain("per_page=100");
+        capturedUrl.ShouldNotContain("sort=stars");
+    }
+
+    [Fact]
+    public async Task GetRepositoriesAsync_NameAsc_PassesFullNameSort()
+    {
+        string? capturedUrl = null;
+        var handler = new FakeHttpMessageHandler(req =>
+        {
+            capturedUrl = req.RequestUri?.ToString();
+            return TestData.OkJson("[]");
+        });
+        var client = TestData.CreateClient(handler);
+
+        await client.GetRepositoriesAsync("octocat", 1, 30, GitHubExplorer.Domain.Enums.SortBy.NameAsc);
+
+        capturedUrl.ShouldNotBeNull();
+        capturedUrl.ShouldContain("sort=full_name");
+        capturedUrl.ShouldContain("direction=asc");
+    }
+
+    [Fact]
+    public async Task GetRepositoriesAsync_NameDesc_PassesFullNameSortDesc()
+    {
+        string? capturedUrl = null;
+        var handler = new FakeHttpMessageHandler(req =>
+        {
+            capturedUrl = req.RequestUri?.ToString();
+            return TestData.OkJson("[]");
+        });
+        var client = TestData.CreateClient(handler);
+
+        await client.GetRepositoriesAsync("octocat", 1, 30, GitHubExplorer.Domain.Enums.SortBy.NameDesc);
+
+        capturedUrl.ShouldNotBeNull();
+        capturedUrl.ShouldContain("sort=full_name");
         capturedUrl.ShouldContain("direction=desc");
     }
 

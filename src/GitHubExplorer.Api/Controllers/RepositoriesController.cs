@@ -1,5 +1,6 @@
 using GitHubExplorer.Application.DTOs;
 using GitHubExplorer.Application.Interfaces;
+using GitHubExplorer.Domain.Enums;
 using GitHubExplorer.Domain.Results;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,11 +12,14 @@ public sealed class RepositoriesController(IGitHubService service) : ControllerB
 {
     private static readonly int[] ValidPageSizes = [10, 30, 50];
 
+    private static readonly string[] ValidSortValues = ["stars_desc", "stars_asc", "name_asc", "name_desc"];
+
     [HttpGet("{username}/repos")]
     public async Task<IActionResult> GetRepositories(
         string username,
         [FromQuery] int page = 1,
         [FromQuery] int perPage = 30,
+        [FromQuery] string sortBy = "stars_desc",
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(username))
@@ -27,7 +31,18 @@ public sealed class RepositoriesController(IGitHubService service) : ControllerB
         if (!ValidPageSizes.Contains(perPage))
             return BadRequest(CreateError("InvalidPageSize", "Page size must be 10, 30, or 50."));
 
-        var result = await service.GetRepositoriesAsync(username.Trim(), page, perPage, ct);
+        if (!ValidSortValues.Contains(sortBy))
+            return BadRequest(CreateError("InvalidSortBy", "Sort must be stars_desc, stars_asc, name_asc, or name_desc."));
+
+        var sort = sortBy switch
+        {
+            "stars_asc" => SortBy.StarsAsc,
+            "name_asc" => SortBy.NameAsc,
+            "name_desc" => SortBy.NameDesc,
+            _ => SortBy.StarsDesc,
+        };
+
+        var result = await service.GetRepositoriesAsync(username.Trim(), page, perPage, sort, ct);
         return result.Match(
             result => Ok(new ApiResponseDto<PaginatedResultDto<RepositoryDto>>(true,
                 new PaginatedResultDto<RepositoryDto>(result.Items, result.TotalCount), null)),

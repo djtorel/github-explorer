@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using GitHubExplorer.Domain.Enums;
 using GitHubExplorer.Domain.Interfaces;
 using GitHubExplorer.Domain.Models;
 using GitHubExplorer.Domain.Results;
@@ -24,13 +25,77 @@ public sealed class GitHubApiClient(HttpClient httpClient, ILogger<GitHubApiClie
             ct);
 
     public async Task<Result<(IReadOnlyList<Repository> Items, int TotalCount)>> GetRepositoriesAsync(
-        string username, int page, int perPage, CancellationToken ct = default)
+        string username, int page, int perPage, SortBy sortBy = SortBy.StarsDesc, CancellationToken ct = default)
     {
-        var url = $"users/{Uri.EscapeDataString(username)}/repos?page={page}&per_page={perPage}&sort=stars&direction=desc";
+        if (sortBy is SortBy.NameAsc or SortBy.NameDesc)
+        {
+            var direction = sortBy == SortBy.NameAsc ? "asc" : "desc";
+            var url = $"users/{Uri.EscapeDataString(username)}/repos?page={page}&per_page={perPage}&sort=full_name&direction={direction}";
+            return await FetchSinglePageAsync(url, perPage, ct);
+        }
 
+        return await FetchAllAndSortAsync(username, page, perPage, sortBy, ct);
+    }
+
+    private async Task<Result<(IReadOnlyList<Repository> Items, int TotalCount)>> FetchAllAndSortAsync(
+        string username, int page, int perPage, SortBy sortBy, CancellationToken ct)
+    {
+        const int fetchPerPage = 100;
+        const int maxPages = 10;
+
+        var allRepos = new List<Repository>();
+        var currentPage = 1;
+        string? nextUrl = $"users/{Uri.EscapeDataString(username)}/repos?page=1&per_page={fetchPerPage}";
+
+        while (!string.IsNullOrEmpty(nextUrl) && currentPage <= maxPages)
+        {
+            var result = await FetchSinglePageAsync(nextUrl, fetchPerPage, ct, isRelative: true);
+            if (!result.IsSuccess)
+                return result;
+
+            allRepos.AddRange(result.Value.Items);
+
+            nextUrl = GetNextPageUrl(result.Value.Items.Count == fetchPerPage);
+            currentPage++;
+        }
+
+        if (allRepos.Count == 0)
+            return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.EmptyResult);
+
+        var sorted = sortBy == SortBy.StarsDesc
+            ? allRepos.OrderByDescending(r => r.StargazersCount).ToList()
+            : allRepos.OrderBy(r => r.StargazersCount).ToList();
+
+        var totalCount = sorted.Count;
+        var skip = (page - 1) * perPage;
+        var paged = skip >= totalCount
+            ? new List<Repository>()
+            : sorted.Skip(skip).Take(perPage).ToList();
+
+        return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((paged, totalCount));
+    }
+
+    private static string? _lastLinkHeader;
+
+    private static string? GetNextPageUrl(bool hasMorePages)
+    {
+        if (!hasMorePages || string.IsNullOrWhiteSpace(_lastLinkHeader))
+            return null;
+
+        var nextMatch = System.Text.RegularExpressions.Regex.Match(
+            _lastLinkHeader,
+            @"<([^>]+)>;\s*rel=""next""");
+
+        return nextMatch.Success ? nextMatch.Groups[1].Value : null;
+    }
+
+    private async Task<Result<(IReadOnlyList<Repository> Items, int TotalCount)>> FetchSinglePageAsync(
+        string url, int perPage, CancellationToken ct, bool isRelative = false)
+    {
         try
         {
-            var response = await httpClient.GetAsync(url, ct);
+            var requestUrl = isRelative ? url : $"{httpClient.BaseAddress}{url}";
+            var response = await httpClient.GetAsync(requestUrl, ct);
             var error = MapToError(response);
 
             if (error.HasValue)
@@ -48,6 +113,8 @@ public sealed class GitHubApiClient(HttpClient httpClient, ILogger<GitHubApiClie
             var linkHeader = response.Headers.TryGetValues("Link", out var linkValues)
                 ? linkValues.FirstOrDefault()
                 : null;
+            _lastLinkHeader = linkHeader;
+
             var totalCount = ExtractTotalCountFromLinkHeader(linkHeader, perPage);
             if (totalCount == 0) totalCount = repos.Count;
 
@@ -55,12 +122,12 @@ public sealed class GitHubApiClient(HttpClient httpClient, ILogger<GitHubApiClie
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            logger.LogWarning("GitHub API request timed out for repos of user {Username}", username);
+            logger.LogWarning("GitHub API request timed out for repos");
             return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.NetworkError);
         }
         catch (HttpRequestException ex)
         {
-            logger.LogWarning(ex, "Network error calling GitHub API for repos of user {Username}", username);
+            logger.LogWarning(ex, "Network error calling GitHub API for repos");
             return Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.NetworkError);
         }
     }

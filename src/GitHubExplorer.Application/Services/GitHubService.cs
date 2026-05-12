@@ -1,5 +1,6 @@
 using GitHubExplorer.Application.DTOs;
 using GitHubExplorer.Application.Interfaces;
+using GitHubExplorer.Domain.Enums;
 using GitHubExplorer.Domain.Interfaces;
 using GitHubExplorer.Domain.Models;
 using GitHubExplorer.Domain.Results;
@@ -12,8 +13,8 @@ public sealed class GitHubService(IGitHubClient client) : IGitHubService
         client.GetUserAsync(username, ct).MapAsync(MapToDto);
 
     public Task<Result<(IReadOnlyList<RepositoryDto> Items, int TotalCount)>> GetRepositoriesAsync(
-        string username, int page, int perPage, CancellationToken ct = default) =>
-        client.GetRepositoriesAsync(username, page, perPage, ct)
+        string username, int page, int perPage, SortBy sortBy = SortBy.StarsDesc, CancellationToken ct = default) =>
+        client.GetRepositoriesAsync(username, page, perPage, sortBy, ct)
             .MapAsync(r => (MapToDtos(r.Items), r.TotalCount));
 
     private static UserProfileDto MapToDto(UserProfile user) => new(

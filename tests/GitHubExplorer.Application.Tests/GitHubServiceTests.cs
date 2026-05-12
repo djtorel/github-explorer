@@ -1,6 +1,7 @@
 using GitHubExplorer.Application.DTOs;
 using GitHubExplorer.Application.Interfaces;
 using GitHubExplorer.Application.Services;
+using GitHubExplorer.Domain.Enums;
 using GitHubExplorer.Domain.Interfaces;
 using GitHubExplorer.Domain.Models;
 using GitHubExplorer.Domain.Results;
@@ -52,7 +53,7 @@ public sealed class GitHubServiceTests
             new() { Name = "Spoon-Knife", Description = "This repo is for demonstration purposes only.", StargazersCount = 12000, ForksCount = 140000, Language = "HTML", HtmlUrl = "https://github.com/octocat/Spoon-Knife" },
             new() { Name = "Hello-World", Description = "My first repository on GitHub!", StargazersCount = 3000, ForksCount = 2000, Language = null, HtmlUrl = "https://github.com/octocat/Hello-World" }
         };
-        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
+        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((repos, repos.Count)));
 
         var result = await _service.GetRepositoriesAsync("octocat", 1, 30);
@@ -74,7 +75,7 @@ public sealed class GitHubServiceTests
     [Fact]
     public async Task GetRepositoriesAsync_ReturnsEmptyList_WhenNoRepos()
     {
-        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
+        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((Array.Empty<Repository>(), 0)));
 
         var result = await _service.GetRepositoriesAsync("octocat", 1, 30);
@@ -111,7 +112,7 @@ public sealed class GitHubServiceTests
     [Fact]
     public async Task GetRepositoriesAsync_PassesThroughNetworkError()
     {
-        _client.GetRepositoriesAsync("any", 1, 30, Arg.Any<CancellationToken>())
+        _client.GetRepositoriesAsync("any", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.NetworkError));
 
         var result = await _service.GetRepositoriesAsync("any", 1, 30);
@@ -123,7 +124,7 @@ public sealed class GitHubServiceTests
     [Fact]
     public async Task GetRepositoriesAsync_PassesThroughEmptyResult()
     {
-        _client.GetRepositoriesAsync("any", 1, 30, Arg.Any<CancellationToken>())
+        _client.GetRepositoriesAsync("any", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Failure(GitHubError.EmptyResult));
 
         var result = await _service.GetRepositoriesAsync("any", 1, 30);
@@ -185,7 +186,7 @@ public sealed class GitHubServiceTests
             new() { Name = "low-stars", Description = "Low", StargazersCount = 10, ForksCount = 1, Language = "C#", HtmlUrl = "https://github.com/octocat/low-stars" },
             new() { Name = "high-stars", Description = "High", StargazersCount = 1000, ForksCount = 100, Language = "TypeScript", HtmlUrl = "https://github.com/octocat/high-stars" }
         };
-        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
+        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((repos, repos.Count)));
 
         var result = await _service.GetRepositoriesAsync("octocat", 1, 30);
@@ -204,7 +205,7 @@ public sealed class GitHubServiceTests
         {
             new() { Name = "no-desc", Description = null, StargazersCount = 5, ForksCount = 1, Language = "Python", HtmlUrl = "https://github.com/octocat/no-desc" }
         };
-        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
+        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((repos, repos.Count)));
 
         var result = await _service.GetRepositoriesAsync("octocat", 1, 30);
@@ -220,7 +221,7 @@ public sealed class GitHubServiceTests
         {
             new() { Name = "no-lang", Description = "No language", StargazersCount = 5, ForksCount = 1, Language = null, HtmlUrl = "https://github.com/octocat/no-lang" }
         };
-        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
+        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((repos, repos.Count)));
 
         var result = await _service.GetRepositoriesAsync("octocat", 1, 30);
@@ -232,7 +233,7 @@ public sealed class GitHubServiceTests
     [Fact]
     public async Task GetRepositoriesAsync_EmptyList_HasZeroTotalCount()
     {
-        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<CancellationToken>())
+        _client.GetRepositoriesAsync("octocat", 1, 30, Arg.Any<SortBy>(), Arg.Any<CancellationToken>())
             .Returns(Result<(IReadOnlyList<Repository> Items, int TotalCount)>.Success((Array.Empty<Repository>(), 0)));
 
         var result = await _service.GetRepositoriesAsync("octocat", 1, 30);

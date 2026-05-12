@@ -3,6 +3,7 @@ import type {
 	PaginatedRepositories,
 	ApiError,
 	ApiResponse,
+	SortBy,
 } from "./types.js";
 
 const API_BASE = "/api";
@@ -28,11 +29,13 @@ export async function fetchRepos(
 	username: string,
 	page: number,
 	perPage: number,
+	sortBy: SortBy = "stars_desc",
 ): Promise<{ data?: PaginatedRepositories; error?: ApiError }> {
 	try {
 		const params = new URLSearchParams({
 			page: String(page),
 			perPage: String(perPage),
+			sortBy,
 		});
 		const res = await fetch(
 			`${API_BASE}/users/${encodeURIComponent(username)}/repos?${params}`,
